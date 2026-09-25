@@ -1,0 +1,37 @@
+{
+  "cues": [
+    {
+      "number": "1",
+      "label": "Preshow music",
+      "type": "sound",
+      "file": "test.mp3"
+    },
+    {
+      "number": "2",
+      "label": "House to half",
+      "type": "light",
+      "fade": 3,
+      "levels": { "1": 128, "2": 128 }
+    },
+    {
+      "number": "3",
+      "label": "Full stage",
+      "type": "light",
+      "fade": 5,
+      "levels": { "1": 255, "2": 255, "3": 255, "4": 255 }
+    },
+    {
+      "number": "4",
+      "label": "Board scene 5",
+      "type": "midi",
+      "bytes": [192, 4]
+    },
+    {
+      "number": "5",
+      "label": "Blackout",
+      "type": "light",
+      "fade": 2,
+      "levels": { "1": 0, "2": 0, "3": 0, "4": 0 }
+    }
+  ]
+}

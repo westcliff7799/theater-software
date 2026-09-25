@@ -1,0 +1,35 @@
+<!doctype html>
+<html>
+<body style="background:#111;color:#eee;font-family:sans-serif;padding:20px">
+  <h1>Stage Manager</h1>
+  <button id="go" style="font-size:40px;padding:20px 60px;background:#080;color:#fff;border:0">GO</button>
+  <button id="reset">Reset to top</button>
+  <ol id="cuelist"></ol>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const list = document.getElementById("cuelist");
+
+    document.getElementById("go").onclick = (e) => { socket.emit("go"); e.target.blur(); };
+    document.getElementById("reset").onclick = () => socket.emit("reset");
+
+    // Space bar = GO, like every real desk
+    document.addEventListener("keydown", (e) => {
+      if (e.code === "Space") { e.preventDefault(); socket.emit("go"); }
+    });
+
+    // Server tells us where we are -> redraw the list
+    socket.on("state", ({ currentCue, cues }) => {
+      list.innerHTML = "";
+      cues.forEach((cue, i) => {
+        const li = document.createElement("li");
+        li.textContent = `${cue.number}  ${cue.label}  (${cue.type})`;
+        if (i === currentCue) li.style.color = "#0f0";      // green = just fired
+        if (i === currentCue + 1) li.style.color = "#ff0";  // yellow = standby
+        list.appendChild(li);
+      });
+    });
+  </script>
+</body>
+</html>

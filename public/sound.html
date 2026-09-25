@@ -1,0 +1,41 @@
+<!doctype html>
+<html>
+<body style="background:#111;color:#eee;font-family:sans-serif;padding:20px">
+  <h1>Sound</h1>
+  <button id="arm">1. Arm audio (click once)</button>
+  <button id="go">2. GO: play test.mp3</button>
+  <button id="note-on">Test note ON</button>
+  <button id="note-off">Test note OFF</button>
+  <p id="status">idle</p>
+  <audio id="player"></audio>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io();
+    const player = document.getElementById("player");
+    const status = document.getElementById("status");
+
+    // Browsers refuse to play sound until a human clicks something on the page.
+    // This one click "unlocks" audio so remote GOs work later.
+    document.getElementById("arm").onclick = () => {
+      player.src = "/audio/test.mp3";
+      player.play().then(() => player.pause());
+      status.textContent = "armed";
+    };
+
+    // Local GO button -> tell the server (the server then tells everyone)
+    document.getElementById("go").onclick = () => socket.emit("playSound", "test.mp3");
+
+    // Test notes
+    document.getElementById("note-on").onclick = () => socket.emit("midi", [0x90, 60, 127]);
+    document.getElementById("note-off").onclick = () => socket.emit("midi", [0x80, 60, 0]);
+
+    // Server says play -> play
+    socket.on("playSound", (file) => {
+      player.src = "/audio/" + file;
+      player.play();
+      status.textContent = "playing " + file;
+    });
+  </script>
+</body>
+</html>

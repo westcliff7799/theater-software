@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<body style="background:#111;color:#eee;font-family:sans-serif;padding:20px">
+  <h1>Lights</h1>
+  <div id="channels"></div>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script>
+    const socket = io(); // connect to the server this page came from
+    const box = document.getElementById("channels");
+
+    // Build 8 sliders and 8 fake lamps
+    for (let ch = 1; ch <= 8; ch++) {
+      box.innerHTML += `
+        <div style="margin:8px 0">
+          Ch ${ch}
+          <input type="range" min="0" max="255" value="0" id="ch${ch}">
+          <span id="lamp${ch}" style="display:inline-block;width:30px;height:30px;background:black;vertical-align:middle"></span>
+        </div>`;
+    }
+
+    // Slider moved -> tell the server
+    for (let ch = 1; ch <= 8; ch++) {
+      document.getElementById("ch" + ch).oninput = (e) => {
+        socket.emit("setChannel", { channel: ch, level: Number(e.target.value) });
+      };
+    }
+
+    // Server says levels changed -> redraw sliders and lamps
+    socket.on("dmx", (dmx) => {
+      for (let ch = 1; ch <= 8; ch++) {
+        const level = dmx[ch - 1];
+        document.getElementById("ch" + ch).value = level;
+        document.getElementById("lamp" + ch).style.background = `rgb(${level},${level},0)`;
+      }
+    });
+  </script>
+</body>
+</html>
