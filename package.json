@@ -2,9 +2,10 @@
   "name": "theater-software",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "main.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "app": "electron ."
   },
   "keywords": [],
   "author": "",
@@ -15,5 +16,8 @@
     "express": "^5.2.1",
     "sacn": "^4.6.2",
     "socket.io": "^4.8.4"
+  },
+  "devDependencies": {
+    "electron": "^44.4.5"
   }
 }

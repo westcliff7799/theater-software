@@ -1,18 +1,21 @@
-// server.js - the one brain every view talks to
+// requirements
 const express = require("express");
 const http = require("http");
 const { Server } = require("socket.io");
-
+const os = require("os");
+const fs = require("fs");
+const { Sender } = require("sacn"); // DMX out with sACN
+const path = require("path");
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
+const midi = require("@julusian/midi");
 
 // Anything in /public becomes a web page. public/lights.html -> /lights.html
-app.use(express.static("public"));
-
-// DMX out with sACN
-const os = require("os");
-const { Sender } = require("sacn");
+app.use(express.static(path.join(__dirname, "public")));
+const show = JSON.parse(
+  fs.readFileSync(path.join(__dirname, "show.json"), "utf8"),
+);
 
 // One sACN sender for every real network card we have right now
 const senders = [];
@@ -39,6 +42,14 @@ for (const list of Object.values(os.networkInterfaces())) {
   }
 }
 
+const midiOut = new midi.Output();
+if (midiOut.getPortCount() > 0) {
+  midiOut.openPort(0);
+  console.log("MIDI out:", midiOut.getPortName(0));
+} else {
+  console.log("No MIDI ports found, MIDI disabled");
+}
+
 // The "state of the lights": 512 channels, just like real DMX. 0 = off, 255 = full.
 const dmx = new Array(512).fill(0);
 
@@ -50,8 +61,6 @@ setInterval(() => {
   for (const s of senders) s.send({ payload });
 }, 50);
 
-const fs = require("fs");
-const show = JSON.parse(fs.readFileSync("show.json", "utf8"));
 let currentCue = -1; // -1 means "top of show, nothing fired yet"
 
 function broadcastState() {
@@ -99,9 +108,8 @@ io.on("connection", (socket) => {
   socket.emit("dmx", dmx);
 
   // A lights page moved a slider
-  socket.on("setChannel", ({ channel, level }) => {
-    dmx[channel - 1] = level;
-    io.emit("dmx", dmx); // io.emit = tell EVERY page, not just the sender
+  socket.on("midi", (bytes) => {
+    if (midiOut.isPortOpen()) midiOut.sendMessage(bytes);
   });
 
   // Someone hit a sound cue
@@ -120,15 +128,6 @@ io.on("connection", (socket) => {
     broadcastState();
   });
 });
-
-const midi = require("@julusian/midi");
-const midiOut = new midi.Output();
-if (midiOut.getPortCount() > 0) {
-  midiOut.openPort(0);
-  console.log("MIDI out:", midiOut.getPortName(0));
-} else {
-  console.log("No MIDI ports found, MIDI disabled");
-}
 
 server.listen(3000, () => {
   console.log("Show server running at http://localhost:3000");
