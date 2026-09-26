@@ -108,17 +108,14 @@ io.on("connection", (socket) => {
   socket.emit("dmx", dmx);
 
   // A lights page moved a slider
-  socket.on("midi", (bytes) => {
-    if (midiOut.isPortOpen()) midiOut.sendMessage(bytes);
+  socket.on("setChannel", ({ channel, level }) => {
+    dmx[channel - 1] = level;
+    io.emit("dmx", dmx); // tell EVERY page, not just the sender
   });
 
   // Someone hit a sound cue
   socket.on("playSound", (file) => {
     io.emit("playSound", file);
-  });
-
-  socket.on("midi", (bytes) => {
-    midiOut.sendMessage(bytes);
   });
 
   socket.emit("state", { currentCue, cues: show.cues }); // newcomer sees the list
