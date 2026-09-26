@@ -124,6 +124,10 @@ io.on("connection", (socket) => {
     currentCue = -1;
     broadcastState();
   });
+
+  socket.on("midi", (bytes) => {
+    if (midiOut.isPortOpen()) midiOut.sendMessage(bytes);
+  });
 });
 
 server.listen(3000, () => {
