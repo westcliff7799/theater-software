@@ -24,6 +24,7 @@ app.whenReady().then(() => {
         { label: "Sound", click: () => openView("sound.html") },
       ],
     },
+    { role: "viewMenu" },
     { role: "windowMenu" },
   ]);
   Menu.setApplicationMenu(menu);

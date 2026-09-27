@@ -1,35 +1,194 @@
 <!doctype html>
 <html>
-<body style="background:#111;color:#eee;font-family:sans-serif;padding:20px">
-  <h1>Stage Manager</h1>
-  <button id="go" style="font-size:40px;padding:20px 60px;background:#080;color:#fff;border:0">GO</button>
-  <button id="reset">Reset to top</button>
-  <ol id="cuelist"></ol>
+  <head>
+    <meta charset="utf-8" />
+    <title>Stage Manager</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <header>
+      <h1>Stage Manager</h1>
+      <button id="reset">Reset</button>
+      <button id="stop">STOP</button>
+      <button id="go" class="go">GO</button>
+    </header>
 
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-    const list = document.getElementById("cuelist");
+    <main>
+      <div class="list">
+        <table>
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Label</th>
+              <th>Type</th>
+              <th>Details</th>
+              <th>Fade</th>
+            </tr>
+          </thead>
+          <tbody id="cues"></tbody>
+        </table>
+        <p style="padding: 12px">
+          <button id="add">+ Add cue</button>
+          <button id="delete">Delete selected</button>
+        </p>
+      </div>
 
-    document.getElementById("go").onclick = (e) => { socket.emit("go"); e.target.blur(); };
-    document.getElementById("reset").onclick = () => socket.emit("reset");
+      <aside class="inspector">
+        <h3>Selected cue</h3>
+        <label>Number <input id="f-number" /></label>
+        <label>Label <input id="f-label" /></label>
+        <label
+          >Type
+          <select id="f-type">
+            <option>light</option>
+            <option>sound</option>
+            <option>midi</option>
+          </select>
+        </label>
+        <label
+          >Fade (seconds) <input id="f-fade" type="number" step="0.1"
+        /></label>
+        <label
+          >Sound file
+          <select id="f-file"></select
+        ></label>
+        <label
+          >Volume 0 to 1
+          <input id="f-volume" type="number" min="0" max="1" step="0.05"
+        /></label>
+        <label
+          >Levels, channel:level
+          <input id="f-levels" placeholder="1:255, 2:128"
+        /></label>
+        <label>MIDI bytes <input id="f-bytes" placeholder="192, 4" /></label>
+        <p><button id="save">Save cue</button></p>
+      </aside>
+    </main>
 
-    // Space bar = GO, like every real desk
-    document.addEventListener("keydown", (e) => {
-      if (e.code === "Space") { e.preventDefault(); socket.emit("go"); }
-    });
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      const $ = (id) => document.getElementById(id); // tiny shortcut, used everywhere below
+      let cues = [],
+        currentCue = -1,
+        selected = -1;
 
-    // Server tells us where we are -> redraw the list
-    socket.on("state", ({ currentCue, cues }) => {
-      list.innerHTML = "";
-      cues.forEach((cue, i) => {
-        const li = document.createElement("li");
-        li.textContent = `${cue.number}  ${cue.label}  (${cue.type})`;
-        if (i === currentCue) li.style.color = "#0f0";      // green = just fired
-        if (i === currentCue + 1) li.style.color = "#ff0";  // yellow = standby
-        list.appendChild(li);
+      // ---- transport
+      $("go").onclick = (e) => {
+        socket.emit("go");
+        e.target.blur();
+      };
+      $("stop").onclick = () => socket.emit("stop");
+      $("reset").onclick = () => socket.emit("reset");
+      document.addEventListener("keydown", (e) => {
+        if (["INPUT", "SELECT"].includes(e.target.tagName)) return; // typing in the inspector, not a GO
+        if (e.code === "Space") {
+          e.preventDefault();
+          socket.emit("go");
+        }
+        if (e.code === "Escape") socket.emit("stop");
       });
-    });
-  </script>
-</body>
+
+      // ---- turning cue data into text and back
+      function describe(cue) {
+        if (cue.type === "sound") return cue.file || "";
+        if (cue.type === "midi") return (cue.bytes || []).join(", ");
+        return Object.entries(cue.levels || {})
+          .map(([ch, lv]) => ch + ":" + lv)
+          .join(", ");
+      }
+      function parseLevels(text) {
+        const levels = {};
+        for (const pair of text.split(",")) {
+          const [ch, lv] = pair.split(":").map((s) => Number(s.trim()));
+          if (ch >= 1 && ch <= 512 && lv >= 0 && lv <= 255) levels[ch] = lv;
+        }
+        return levels;
+      }
+
+      // ---- drawing the table
+      function render() {
+        const body = $("cues");
+        body.innerHTML = "";
+        cues.forEach((cue, i) => {
+          const tr = document.createElement("tr");
+          tr.className =
+            "cue" +
+            (i === currentCue ? " live" : "") +
+            (i === currentCue + 1 ? " standby" : "") +
+            (i === selected ? " selected" : "");
+          tr.innerHTML = `<td>${cue.number}</td><td>${cue.label}</td><td>${cue.type}</td><td>${describe(cue)}</td><td>${cue.fade ?? ""}</td>`;
+          tr.onclick = () => {
+            selected = i;
+            render();
+            fillInspector();
+          };
+          body.appendChild(tr);
+        });
+      }
+      function fillInspector() {
+        const cue = cues[selected];
+        if (!cue) return;
+        $("f-number").value = cue.number;
+        $("f-label").value = cue.label;
+        $("f-type").value = cue.type;
+        $("f-fade").value = cue.fade ?? "";
+        $("f-file").value = cue.file || "";
+        $("f-levels").value = cue.type === "light" ? describe(cue) : "";
+        $("f-bytes").value = cue.type === "midi" ? describe(cue) : "";
+        $("f-volume").value = cue.volume ?? 1;
+      }
+
+      // ---- editing: change the local list, then hand it to the server to save
+      $("save").onclick = () => {
+        if (selected < 0) return;
+        const cue = {
+          number: $("f-number").value,
+          label: $("f-label").value,
+          type: $("f-type").value,
+        };
+        if (cue.type === "light") {
+          cue.fade = Number($("f-fade").value) || 0;
+          cue.levels = parseLevels($("f-levels").value);
+        }
+        if (cue.type === "sound") cue.file = $("f-file").value;
+        if (cue.type === "midi")
+          cue.bytes = $("f-bytes")
+            .value.split(",")
+            .map((s) => Number(s.trim()));
+        cues[selected] = cue;
+        socket.emit("saveCues", cues);
+        if (cue.type === "sound") { cue.file = $("f-file").value; cue.volume = Number($("f-volume").value) || 1; }
+      };
+      $("add").onclick = () => {
+        cues.push({
+          number: String(cues.length + 1),
+          label: "New cue",
+          type: "light",
+          fade: 0,
+          levels: {},
+        });
+        selected = cues.length - 1;
+        socket.emit("saveCues", cues);
+      };
+      $("delete").onclick = () => {
+        if (selected < 0) return;
+        cues.splice(selected, 1);
+        selected = -1;
+        socket.emit("saveCues", cues);
+      };
+
+      // ---- the server is the source of truth: whatever it sends, we draw
+      socket.on("state", (state) => {
+        const sel = $("f-file");
+        const keep = sel.value;
+        sel.innerHTML = "";
+        state.audioFiles.forEach((f) => sel.add(new Option(f, f)));
+        if (keep) sel.value = keep;
+        cues = state.cues;
+        currentCue = state.currentCue;
+        render();
+      });
+    </script>
+  </body>
 </html>

@@ -1,39 +1,74 @@
 <!doctype html>
 <html>
-<body style="background:#111;color:#eee;font-family:sans-serif;padding:20px">
-  <h1>Lights</h1>
-  <div id="channels"></div>
+<head>
+  <meta charset="utf-8">
+  <title>Lights</title>
+  <link rel="stylesheet" href="/style.css">
+  <style>
+    .faders { display: grid; grid-template-columns: repeat(24, 1fr); gap: 6px; padding: 16px; }
+    .fader { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); }
+    .fader input { writing-mode: vertical-lr; direction: rtl; height: 220px; width: 24px; }
+    .fader b { color: var(--text); }
+    .lamp { width: 24px; height: 24px; border-radius: 50%; background: #000; border: 1px solid var(--line); }
+    header input { padding: 6px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 4px; }
+    header select { padding: 6px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Lights</h1>
+    <select id="target"></select>
+    <button id="record">Record into cue</button>
+    <input id="newLabel" placeholder="New look name">
+    <button id="recordNew">Record as new</button>
+    <button id="clear">Clear all</button>
+  </header>
+
+  <div class="faders" id="faders"></div>
 
   <script src="/socket.io/socket.io.js"></script>
   <script>
-    const socket = io(); // connect to the server this page came from
-    const box = document.getElementById("channels");
+    const socket = io();
+    const $ = (id) => document.getElementById(id);
+    const COUNT = 24;
 
-    // Build 8 sliders and 8 fake lamps
-    for (let ch = 1; ch <= 8; ch++) {
-      box.innerHTML += `
-        <div style="margin:8px 0">
-          Ch ${ch}
-          <input type="range" min="0" max="255" value="0" id="ch${ch}">
-          <span id="lamp${ch}" style="display:inline-block;width:30px;height:30px;background:black;vertical-align:middle"></span>
-        </div>`;
-    }
-
-    // Slider moved -> tell the server
-    for (let ch = 1; ch <= 8; ch++) {
-      document.getElementById("ch" + ch).oninput = (e) => {
+    // Build one fader per channel
+    for (let ch = 1; ch <= COUNT; ch++) {
+      const div = document.createElement("div");
+      div.className = "fader";
+      div.innerHTML = `
+        <div class="lamp" id="lamp${ch}"></div>
+        <input type="range" min="0" max="255" value="0" id="ch${ch}">
+        <b id="val${ch}">0</b><span>${ch}</span>`;
+      $("faders").appendChild(div);
+      div.querySelector("input").oninput = (e) =>
         socket.emit("setChannel", { channel: ch, level: Number(e.target.value) });
-      };
     }
 
-    // Server says levels changed -> redraw sliders and lamps
+    // Live levels from the server
     socket.on("dmx", (dmx) => {
-      for (let ch = 1; ch <= 8; ch++) {
-        const level = dmx[ch - 1];
-        document.getElementById("ch" + ch).value = level;
-        document.getElementById("lamp" + ch).style.background = `rgb(${level},${level},0)`;
+      for (let ch = 1; ch <= COUNT; ch++) {
+        const lv = dmx[ch - 1];
+        $("ch" + ch).value = lv;
+        $("val" + ch).textContent = lv;
+        $("lamp" + ch).style.background = `rgb(${lv}, ${Math.round(lv * 0.85)}, ${Math.round(lv * 0.5)})`;
       }
     });
+
+    // Cue list from the server -> dropdown of light cues to record into
+    socket.on("state", ({ cues }) => {
+      const sel = $("target");
+      const keep = sel.value;
+      sel.innerHTML = "";
+      cues.forEach((cue, i) => {
+        if (cue.type === "light") sel.add(new Option(cue.number + "  " + cue.label, i));
+      });
+      if (keep) sel.value = keep;
+    });
+
+    $("record").onclick = () => socket.emit("recordCue", { index: Number($("target").value) });
+    $("recordNew").onclick = () => socket.emit("recordCue", { index: -1, label: $("newLabel").value });
+    $("clear").onclick = () => socket.emit("clearAll");
   </script>
 </body>
 </html>

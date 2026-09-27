@@ -64,29 +64,43 @@ setInterval(() => {
 let currentCue = -1; // -1 means "top of show, nothing fired yet"
 
 function broadcastState() {
-  io.emit("state", { currentCue, cues: show.cues });
+  io.emit("state", state());
 }
 
-// Move some channels from where they are to new levels over N seconds
+// Fades
+const activeFades = new Set();
+
 function fadeTo(levels, seconds) {
-  const start = dmx.slice(); // snapshot of where we began
-  const steps = Math.max(1, Math.round(seconds * 40)); // 40 steps per second
+  const start = dmx.slice();
+  const steps = Math.max(1, Math.round(seconds * 40));
   let step = 0;
   const timer = setInterval(() => {
     step++;
-    const t = step / steps; // 0 at the start, 1 at the end
+    const t = step / steps;
     for (const [ch, target] of Object.entries(levels)) {
       const i = ch - 1;
       dmx[i] = Math.round(start[i] + (target - start[i]) * t);
     }
-    io.emit("dmx", dmx); // lights pages animate
-    if (step >= steps) clearInterval(timer);
+    io.emit("dmx", dmx);
+    if (step >= steps) {
+      clearInterval(timer);
+      activeFades.delete(timer);
+    }
   }, 25);
+  activeFades.add(timer);
+}
+
+function stopAll() {
+  for (const t of activeFades) clearInterval(t); // freeze lights where they are
+  activeFades.clear();
+  io.emit("stopSound"); // sound pages stop playback
+  console.log("STOP");
 }
 
 function runCue(cue) {
   if (cue.type === "light") fadeTo(cue.levels, cue.fade || 0);
-  if (cue.type === "sound") io.emit("playSound", cue.file);
+  if (cue.type === "sound")
+    io.emit("playSound", { file: cue.file, volume: cue.volume ?? 1 });
   if (cue.type === "midi" && midiOut.isPortOpen())
     midiOut.sendMessage(cue.bytes);
 }
@@ -100,7 +114,29 @@ function go() {
   broadcastState();
 }
 
-// This runs once for every page that opens
+function saveShow() {
+  fs.writeFileSync(
+    path.join(__dirname, "show.json"),
+    JSON.stringify(show, null, 2),
+  );
+}
+
+function audioFiles() {
+  return fs
+    .readdirSync(path.join(__dirname, "public", "audio"))
+    .filter((f) => /\.(mp3|wav|m4a|aif|aiff|ogg)$/i.test(f));
+}
+
+function state() {
+  return {
+    currentCue,
+    cues: show.cues,
+    script: show.script,
+    audioFiles: audioFiles(),
+  };
+}
+
+// Connection Block
 io.on("connection", (socket) => {
   console.log("a view connected");
 
@@ -110,15 +146,10 @@ io.on("connection", (socket) => {
   // A lights page moved a slider
   socket.on("setChannel", ({ channel, level }) => {
     dmx[channel - 1] = level;
-    io.emit("dmx", dmx); // tell EVERY page, not just the sender
+    io.emit("dmx", dmx);
   });
 
-  // Someone hit a sound cue
-  socket.on("playSound", (file) => {
-    io.emit("playSound", file);
-  });
-
-  socket.emit("state", { currentCue, cues: show.cues }); // newcomer sees the list
+  socket.emit("state", state()); // newcomer sees the list
   socket.on("go", go);
   socket.on("reset", () => {
     currentCue = -1;
@@ -127,6 +158,50 @@ io.on("connection", (socket) => {
 
   socket.on("midi", (bytes) => {
     if (midiOut.isPortOpen()) midiOut.sendMessage(bytes);
+  });
+
+  socket.on("stop", stopAll);
+
+  socket.on("saveCues", (cues) => {
+    show.cues = cues;
+    fs.writeFileSync(
+      path.join(__dirname, "show.json"),
+      JSON.stringify(show, null, 2),
+    );
+    broadcastState();
+  });
+
+  // Capture the current live levels into a cue
+  socket.on("recordCue", ({ index, label }) => {
+    const levels = {};
+    dmx.forEach((lv, i) => {
+      if (lv > 0) levels[i + 1] = lv;
+    });
+
+    const cue = show.cues[index];
+    if (cue) {
+      // Channels the cue used to have but are now dark must be recorded as 0,
+      // otherwise the cue would leave them wherever they were.
+      for (const ch of Object.keys(cue.levels || {}))
+        if (!(ch in levels)) levels[ch] = 0;
+      cue.type = "light";
+      cue.levels = levels;
+    } else {
+      show.cues.push({
+        number: String(show.cues.length + 1),
+        label: label || "New look",
+        type: "light",
+        fade: 3,
+        levels,
+      });
+    }
+    saveShow();
+    broadcastState();
+  });
+
+  socket.on("clearAll", () => {
+    dmx.fill(0);
+    io.emit("dmx", dmx);
   });
 });
 
