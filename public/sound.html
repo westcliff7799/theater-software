@@ -1,95 +1,95 @@
 <!doctype html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>Sound</title>
-  <link rel="stylesheet" href="/style.css">
-  <style>
-    main { grid-template-columns: 1fr 1fr; }
-    section { padding: 16px; overflow: auto; }
-    .row { display: flex; align-items: center; gap: 10px; padding: 8px; border-bottom: 1px solid var(--line); }
-    .row span { flex: 1; }
-    progress { width: 160px; }
-  </style>
-</head>
-<body>
-  <header>
-    <h1>Sound</h1>
-    <span id="armState" style="color: var(--standby)">Not armed</span>
-    <button id="arm">Arm audio</button>
-    <button id="stop">STOP</button>
-  </header>
-
-  <main>
-    <section>
-      <h3>Files in public/audio</h3>
-      <div id="files"></div>
-    </section>
-    <section>
-      <h3>Now playing</h3>
-      <div id="playing"></div>
-    </section>
-  </main>
-
-  <script src="/socket.io/socket.io.js"></script>
-  <script>
-    const socket = io();
-    const $ = (id) => document.getElementById(id);
-    const players = new Map(); // one Audio object per sound currently playing
-
-    // Any click on the page unlocks audio in a browser. In the app it's already allowed.
-    $("arm").onclick = () => {
-      $("armState").textContent = "Armed";
-      $("armState").style.color = "#3fdc5a";
-    };
-
-    function play(file, volume = 1) {
-      const a = new Audio("/audio/" + file);
-      a.volume = volume;
-      a.play();
-      players.set(a, file);
-      a.onended = () => { players.delete(a); renderPlaying(); };
-      renderPlaying();
-    }
-
-    // Fade every playing sound out over one second, then stop it
-    function stopAll() {
-      for (const a of players.keys()) {
-        const fade = setInterval(() => {
-          a.volume = Math.max(0, a.volume - 0.05);
-          if (a.volume === 0) { clearInterval(fade); a.pause(); players.delete(a); renderPlaying(); }
-        }, 50);
+  <head>
+    <meta charset="utf-8" />
+    <title>Sound</title>
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      main {
+        grid-template-columns: 1fr 1fr;
       }
-    }
-
-    function renderPlaying() {
-      const box = $("playing");
-      box.innerHTML = "";
-      for (const [a, file] of players) {
-        const row = document.createElement("div");
-        row.className = "row";
-        row.innerHTML = `<span>${file}</span><progress max="1" value="0"></progress>`;
-        a.ontimeupdate = () => { if (a.duration) row.querySelector("progress").value = a.currentTime / a.duration; };
-        box.appendChild(row);
+      section {
+        padding: 16px;
+        overflow: auto;
       }
-    }
-
-    socket.on("playSound", ({ file, volume }) => play(file, volume));
-    socket.on("stopSound", stopAll);
-    $("stop").onclick = () => socket.emit("stop");
-
-    // File list from the server, with a preview button each
-    socket.on("state", ({ audioFiles }) => {
-      const box = $("files");
-      box.innerHTML = "";
-      for (const file of audioFiles) {
-        const row = document.createElement("div");
-        row.className = "row";
-        row.innerHTML = `<span>${file}</span><button>Preview</button>`;
-        row.querySelector("button").onclick = () => play(file, 1);
-        box.appendChild(row);
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 8px;
+        border-bottom: 1px solid var(--line);
       }
-    });
-  </script>
-</body>
+      .row span {
+        flex: 1;
+      }
+      progress {
+        width: 160px;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Sound</h1>
+      <span id="armState" style="color: var(--standby)">Not armed</span>
+      <button id="arm">Arm audio</button>
+      <button id="stop">STOP</button>
+    </header>
+
+    <main>
+      <section>
+        <h3>Files in public/audio</h3>
+        <div id="files"></div>
+      </section>
+      <section>
+        <h3>Now playing</h3>
+        <div id="playing"></div>
+      </section>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/audio-player.js"></script>
+    <script>
+      const socket = io();
+      const $ = (id) => document.getElementById(id);
+
+      // Any click on the page unlocks audio in a browser. In the app it's already allowed.
+      $("arm").onclick = () => {
+        $("armState").textContent = "Armed";
+        $("armState").style.color = "#3fdc5a";
+      };
+
+      function renderPlaying() {
+        const box = $("playing");
+        box.innerHTML = "";
+        for (const [a, file] of players) {
+          const row = document.createElement("div");
+          row.className = "row";
+          row.innerHTML = `<span>${file}</span><progress max="1" value="0"></progress>`;
+          a.ontimeupdate = () => {
+            if (a.duration)
+              row.querySelector("progress").value = a.currentTime / a.duration;
+          };
+          box.appendChild(row);
+        }
+      }
+
+      listenForSound(socket);
+      onPlayersChange = renderPlaying;
+
+      $("stop").onclick = () => socket.emit("stop");
+
+      // File list from the server, with a preview button each
+      socket.on("state", ({ audioFiles }) => {
+        const box = $("files");
+        box.innerHTML = "";
+        for (const file of audioFiles) {
+          const row = document.createElement("div");
+          row.className = "row";
+          row.innerHTML = `<span>${file}</span><button>Preview</button>`;
+          row.querySelector("button").onclick = () => play(file, 1);
+          box.appendChild(row);
+        }
+      });
+    </script>
+  </body>
 </html>
