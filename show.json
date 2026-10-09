@@ -1,13 +1,6 @@
 {
-  "title": "Hamlet \u00b7 Act 3 Scene 1",
+  "title": "Hamlet · Act 3 Scene 1",
   "cues": [
-    {
-      "number": "1",
-      "label": "New cue",
-      "type": "light",
-      "fade": 0,
-      "levels": {}
-    },
     {
       "number": "2",
       "label": "New cue",
@@ -17,6 +10,170 @@
     },
     {
       "number": "3",
+      "label": "New cue",
+      "type": "light",
+      "fade": 0,
+      "levels": {}
+    },
+    {
+      "number": "1",
+      "label": "New cue",
+      "type": "mix",
+      "fade": 0,
+      "levels": {},
+      "mix": {
+        "0": {
+          "fader": 0.75,
+          "mute": false,
+          "gain": 30,
+          "phantom": false,
+          "hpf": false,
+          "hpfFreq": 100,
+          "pan": 0
+        },
+        "1": {
+          "fader": 0.75,
+          "mute": false,
+          "gain": 30,
+          "phantom": false,
+          "hpf": false,
+          "hpfFreq": 100,
+          "pan": 0
+        },
+        "2": {
+          "fader": 0.75,
+          "mute": false,
+          "gain": 30,
+          "phantom": false,
+          "hpf": false,
+          "hpfFreq": 100,
+          "pan": 0
+        },
+        "3": {
+          "fader": 0.75,
+          "mute": false,
+          "gain": 30,
+          "phantom": false,
+          "hpf": false,
+          "hpfFreq": 100,
+          "pan": 0
+        },
+        "4": {
+          "fader": 0.75,
+          "mute": false,
+          "gain": 30,
+          "phantom": false,
+          "hpf": false,
+          "hpfFreq": 100,
+          "pan": 0
+        },
+        "5": {
+          "fader": 0.75,
+          "mute": false,
+          "gain": 30,
+          "phantom": false,
+          "hpf": false,
+          "hpfFreq": 100,
+          "pan": 0
+        },
+        "6": {
+          "fader": 0.75,
+          "mute": false,
+          "gain": 30,
+          "phantom": false,
+          "hpf": false,
+          "hpfFreq": 100,
+          "pan": 0
+        },
+        "7": {
+          "fader": 0.75,
+          "mute": false,
+          "gain": 30,
+          "phantom": false,
+          "hpf": false,
+          "hpfFreq": 100,
+          "pan": 0
+        },
+        "8": {
+          "fader": 0.75,
+          "mute": false,
+          "gain": 30,
+          "phantom": false,
+          "hpf": false,
+          "hpfFreq": 100,
+          "pan": 0
+        },
+        "9": {
+          "fader": 0.75,
+          "mute": false,
+          "gain": 30,
+          "phantom": false,
+          "hpf": false,
+          "hpfFreq": 100,
+          "pan": 0
+        },
+        "10": {
+          "fader": 0.75,
+          "mute": false,
+          "gain": 30,
+          "phantom": false,
+          "hpf": false,
+          "hpfFreq": 100,
+          "pan": 0
+        },
+        "11": {
+          "fader": 0.75,
+          "mute": false,
+          "gain": 30,
+          "phantom": false,
+          "hpf": false,
+          "hpfFreq": 100,
+          "pan": 0
+        },
+        "12": {
+          "fader": 0.75,
+          "mute": false,
+          "gain": 30,
+          "phantom": false,
+          "hpf": false,
+          "hpfFreq": 100,
+          "pan": 0
+        },
+        "13": {
+          "fader": 0.75,
+          "mute": false,
+          "gain": 30,
+          "phantom": false,
+          "hpf": false,
+          "hpfFreq": 100,
+          "pan": 0
+        },
+        "14": {
+          "fader": 0.75,
+          "mute": false,
+          "gain": 30,
+          "phantom": false,
+          "hpf": false,
+          "hpfFreq": 100,
+          "pan": 0
+        },
+        "15": {
+          "fader": 0.75,
+          "mute": false,
+          "gain": 30,
+          "phantom": false,
+          "hpf": false,
+          "hpfFreq": 100,
+          "pan": 0
+        },
+        "master": {
+          "fader": 0.75,
+          "mute": false
+        }
+      }
+    },
+    {
+      "number": "4",
       "label": "New cue",
       "type": "light",
       "fade": 0,
@@ -114,10 +271,39 @@
     },
     {
       "name": "LED 4",
-      "type": "rgb",
+      "type": "rgbw",
       "address": 20,
       "x": 88,
       "y": 12
+    },
+    {
+      "name": "Fixture 11",
+      "type": "irgb",
+      "address": 23,
+      "x": 40,
+      "y": 60
     }
-  ]
+  ],
+  "mixer": {
+    "channels": [
+      "Hamlet",
+      "Ophelia",
+      "Claudius",
+      "Gertrude",
+      "Polonius",
+      "Laertes",
+      "Horatio",
+      "Ghost",
+      "Chorus L",
+      "Chorus R",
+      "Piano",
+      "Guitar",
+      "Bass",
+      "Drums",
+      "Spare 1",
+      "Spare 2"
+    ],
+    "sqHost": "",
+    "midiChannel": 0
+  }
 }
