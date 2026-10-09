@@ -12,22 +12,22 @@ function openView(page, width = 1000, height = 700) {
 app.whenReady().then(() => {
   openView("sm.html", 1200, 800); // main view
 
-  // A "Views" menu so one machine can open any role
+  // Views are switched inside the window (nav strip, Cmd+1..5).
+  // "New Window" is for a second screen, e.g. lights on one and the cue list on another.
   const menu = Menu.buildFromTemplate([
     { role: "appMenu" },
     { role: "editMenu" },
+    { role: "viewMenu" },
     {
-      label: "Views",
+      role: "windowMenu",
       submenu: [
-        { label: "Home", click: () => openView("index.html") },
-        { label: "Stage Manager", click: () => openView("sm.html") },
-        { label: "Lights", click: () => openView("lights.html") },
-        { label: "Sound", click: () => openView("sound.html") },
-        { label: "Script", click: () => openView("actor.html") },
+        { label: "New Window", accelerator: "CmdOrCtrl+N", click: () => openView("index.html") },
+        { type: "separator" },
+        { role: "minimize" },
+        { role: "zoom" },
+        { role: "close" },
       ],
     },
-    { role: "viewMenu" },
-    { role: "windowMenu" },
   ]);
   Menu.setApplicationMenu(menu);
 });

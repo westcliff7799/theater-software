@@ -4,7 +4,7 @@
   --go: #1f8f3a; --live: #143d1f; --standby: #f2c94c;
 }
 * { box-sizing: border-box; }
-body { margin: 0; background: var(--bg); color: var(--text); font-family: -apple-system, Helvetica, sans-serif; font-size: 15px; }
+body { margin: 0; display: flex; flex-direction: column; height: 100vh; background: var(--bg); color: var(--text); font-family: -apple-system, Helvetica, sans-serif; font-size: 15px; }
 
 header { display: flex; align-items: center; gap: 12px; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); }
 header h1 { font-size: 18px; margin: 0 auto 0 0; }
@@ -13,7 +13,7 @@ button { background: #2a2a2a; color: var(--text); border: 1px solid var(--line);
 button:hover { background: #333; }
 button.go { background: var(--go); border-color: var(--go); font-size: 28px; font-weight: bold; padding: 14px 48px; }
 
-main { display: grid; grid-template-columns: 1fr 320px; height: calc(100vh - 57px); }
+main { display: grid; grid-template-columns: 1fr 320px; flex: 1; min-height: 0; }
 .list { overflow: auto; }
 table { width: 100%; border-collapse: collapse; }
 th, td { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--line); }
@@ -27,3 +27,9 @@ tr.selected { outline: 1px solid var(--accent); }
 .inspector { background: var(--panel); border-left: 1px solid var(--line); padding: 16px; overflow: auto; }
 .inspector label { display: block; color: var(--dim); font-size: 12px; margin-top: 12px; }
 .inspector input, .inspector select { width: 100%; padding: 6px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 4px; font-size: 14px; }
+
+/* navigation strip, injected by nav.js */
+.nav { display: flex; gap: 2px; padding: 4px 10px; background: #0c0c0c; border-bottom: 1px solid var(--line); -webkit-app-region: drag; }
+.nav a { padding: 5px 12px; border-radius: 6px; color: var(--dim); text-decoration: none; font-size: 13px; -webkit-app-region: no-drag; }
+.nav a:hover { color: var(--text); }
+.nav a.on { color: var(--text); background: var(--panel); }
