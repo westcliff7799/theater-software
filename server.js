@@ -132,6 +132,7 @@ function state() {
   return {
     currentCue,
     cues: show.cues,
+    title: show.title || "",
     script: show.script || [], // older show.json files have no script yet
     patch: show.patch || [], // fixtures: { name, type, address, x, y }
     master,

@@ -1,4 +1,5 @@
 {
+  "title": "Hamlet \u00b7 Act 3 Scene 1",
   "cues": [
     {
       "number": "1",
@@ -108,8 +109,8 @@
       "name": "LED 3",
       "type": "rgb",
       "address": 17,
-      "x": 63,
-      "y": 14
+      "x": 64,
+      "y": 13
     },
     {
       "name": "LED 4",
