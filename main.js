@@ -19,9 +19,11 @@ app.whenReady().then(() => {
     {
       label: "Views",
       submenu: [
+        { label: "Home", click: () => openView("index.html") },
         { label: "Stage Manager", click: () => openView("sm.html") },
         { label: "Lights", click: () => openView("lights.html") },
         { label: "Sound", click: () => openView("sound.html") },
+        { label: "Script", click: () => openView("actor.html") },
       ],
     },
     { role: "viewMenu" },

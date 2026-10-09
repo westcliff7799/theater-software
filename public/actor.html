@@ -1,0 +1,81 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Script</title>
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      main {
+        display: block; /* one column, no inspector on this page */
+        overflow: auto;
+        padding: 24px 0 60vh; /* room to scroll the live line up the screen */
+      }
+      .line {
+        display: grid;
+        grid-template-columns: 140px 1fr 90px;
+        gap: 16px;
+        padding: 10px 24px;
+        border-left: 4px solid transparent;
+        font-size: 18px;
+        line-height: 1.5;
+      }
+      .line .speaker { color: var(--dim); font-size: 13px; text-transform: uppercase; padding-top: 4px; }
+      .line .cue { color: var(--dim); font-size: 13px; text-align: right; padding-top: 4px; }
+      .line.standby { border-left-color: var(--standby); }
+      .line.standby .cue { color: var(--standby); font-weight: bold; }
+      .line.live { background: var(--live); border-left-color: var(--go); }
+      .line.live .cue { color: #3fdc5a; font-weight: bold; }
+      .empty { padding: 24px; color: var(--dim); }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Script</h1>
+      <span id="status" style="color: var(--dim)">Top of show</span>
+    </header>
+
+    <main id="script"></main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+      const socket = io();
+      const $ = (id) => document.getElementById(id);
+
+      // The server sends { currentCue, cues, script }. Each script line looks like
+      // { speaker: "HAMLET", text: "To be...", cue: "3" }  (cue is optional)
+      socket.on("state", ({ currentCue, cues, script }) => {
+        const box = $("script");
+        box.innerHTML = "";
+
+        const liveNumber = cues[currentCue]?.number; // undefined at top of show
+        const nextNumber = cues[currentCue + 1]?.number;
+
+        $("status").textContent = liveNumber
+          ? `Live: cue ${liveNumber}  ·  Standby: ${nextNumber ? "cue " + nextNumber : "end of show"}`
+          : "Top of show";
+
+        if (!script || script.length === 0) {
+          box.innerHTML = '<p class="empty">No script yet. Add a "script" list to show.json.</p>';
+          return;
+        }
+
+        for (const line of script) {
+          const div = document.createElement("div");
+          div.className =
+            "line" +
+            (line.cue && line.cue === liveNumber ? " live" : "") +
+            (line.cue && line.cue === nextNumber ? " standby" : "");
+          div.innerHTML = `
+            <span class="speaker">${line.speaker || ""}</span>
+            <span class="text">${line.text || ""}</span>
+            <span class="cue">${line.cue ? "GO " + line.cue : ""}</span>`;
+          box.appendChild(div);
+        }
+
+        // Keep the live line (or the standby line) in view as the show moves on
+        const focus = box.querySelector(".live") || box.querySelector(".standby");
+        if (focus) focus.scrollIntoView({ block: "center", behavior: "smooth" });
+      });
+    </script>
+  </body>
+</html>

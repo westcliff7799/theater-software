@@ -21,5 +21,102 @@
       "fade": 0,
       "levels": {}
     }
+  ],
+  "script": [
+    {
+      "speaker": "Stage",
+      "text": "House to half. Audience settles.",
+      "cue": "1"
+    },
+    {
+      "speaker": "Stage",
+      "text": "Lights up on an empty stage.",
+      "cue": "2"
+    },
+    {
+      "speaker": "Hamlet",
+      "text": "To be, or not to be, that is the question."
+    },
+    {
+      "speaker": "Hamlet",
+      "text": "Whether 'tis nobler in the mind to suffer the slings and arrows of outrageous fortune, or to take arms against a sea of troubles, and by opposing end them.",
+      "cue": "3"
+    },
+    {
+      "speaker": "Stage",
+      "text": "Blackout."
+    }
+  ],
+  "patch": [
+    {
+      "name": "Front L",
+      "type": "dimmer",
+      "address": 1,
+      "x": 20,
+      "y": 78
+    },
+    {
+      "name": "Front C",
+      "type": "dimmer",
+      "address": 2,
+      "x": 50,
+      "y": 78
+    },
+    {
+      "name": "Front R",
+      "type": "dimmer",
+      "address": 3,
+      "x": 80,
+      "y": 78
+    },
+    {
+      "name": "Back L",
+      "type": "dimmer",
+      "address": 4,
+      "x": 20,
+      "y": 40
+    },
+    {
+      "name": "Back C",
+      "type": "dimmer",
+      "address": 5,
+      "x": 50,
+      "y": 40
+    },
+    {
+      "name": "Back R",
+      "type": "dimmer",
+      "address": 6,
+      "x": 80,
+      "y": 40
+    },
+    {
+      "name": "LED 1",
+      "type": "rgb",
+      "address": 11,
+      "x": 12,
+      "y": 12
+    },
+    {
+      "name": "LED 2",
+      "type": "rgb",
+      "address": 14,
+      "x": 37,
+      "y": 12
+    },
+    {
+      "name": "LED 3",
+      "type": "rgb",
+      "address": 17,
+      "x": 63,
+      "y": 14
+    },
+    {
+      "name": "LED 4",
+      "type": "rgb",
+      "address": 20,
+      "x": 88,
+      "y": 12
+    }
   ]
 }

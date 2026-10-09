@@ -11,6 +11,10 @@
       <button id="reset">Reset</button>
       <button id="stop">STOP</button>
       <button id="go" class="go">GO</button>
+      <label>
+        <input type="checkbox" id="playHere" checked />
+        Play audio in this window
+      </label>
     </header>
 
     <main>
@@ -66,6 +70,7 @@
     </main>
 
     <script src="/socket.io/socket.io.js"></script>
+    <script src="/audio-player.js"></script>
     <script>
       const socket = io();
       const $ = (id) => document.getElementById(id); // tiny shortcut, used everywhere below
@@ -80,6 +85,13 @@
       };
       $("stop").onclick = () => socket.emit("stop");
       $("reset").onclick = () => socket.emit("reset");
+
+      // ---- audio in this window (shared player from audio-player.js)
+      listenForSound(socket);
+      $("playHere").onchange = (e) => {
+        playHere = e.target.checked;
+      };
+
       document.addEventListener("keydown", (e) => {
         if (["INPUT", "SELECT"].includes(e.target.tagName)) return; // typing in the inspector, not a GO
         if (e.code === "Space") {
@@ -151,14 +163,16 @@
           cue.fade = Number($("f-fade").value) || 0;
           cue.levels = parseLevels($("f-levels").value);
         }
-        if (cue.type === "sound") cue.file = $("f-file").value;
+        if (cue.type === "sound") {
+          cue.file = $("f-file").value;
+          cue.volume = Number($("f-volume").value) || 1;
+        }
         if (cue.type === "midi")
           cue.bytes = $("f-bytes")
             .value.split(",")
             .map((s) => Number(s.trim()));
         cues[selected] = cue;
         socket.emit("saveCues", cues);
-        if (cue.type === "sound") { cue.file = $("f-file").value; cue.volume = Number($("f-volume").value) || 1; }
       };
       $("add").onclick = () => {
         cues.push({

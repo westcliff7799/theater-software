@@ -52,11 +52,12 @@ if (midiOut.getPortCount() > 0) {
 
 // The "state of the lights": 512 channels, just like real DMX. 0 = off, 255 = full.
 const dmx = new Array(512).fill(0);
+let master = 255; // grand master: scales every channel on the way out, 0 = blackout
 
 setInterval(() => {
   const payload = {};
   dmx.forEach((level, i) => {
-    if (level > 0) payload[i + 1] = level;
+    if (level > 0) payload[i + 1] = Math.round((level * master) / 255);
   });
   for (const s of senders) s.send({ payload });
 }, 50);
@@ -131,7 +132,9 @@ function state() {
   return {
     currentCue,
     cues: show.cues,
-    script: show.script,
+    script: show.script || [], // older show.json files have no script yet
+    patch: show.patch || [], // fixtures: { name, type, address, x, y }
+    master,
     audioFiles: audioFiles(),
   };
 }
@@ -147,6 +150,33 @@ io.on("connection", (socket) => {
   socket.on("setChannel", ({ channel, level }) => {
     dmx[channel - 1] = level;
     io.emit("dmx", dmx);
+  });
+
+  // A lights page set several channels at once: { "1": 255, "2": 128 }
+  socket.on("setChannels", (levels) => {
+    for (const [ch, level] of Object.entries(levels)) {
+      if (ch >= 1 && ch <= 512)
+        dmx[ch - 1] = Math.max(0, Math.min(255, Math.round(level)));
+    }
+    io.emit("dmx", dmx);
+  });
+
+  socket.on("setMaster", (level) => {
+    master = Math.max(0, Math.min(255, Math.round(level)));
+    broadcastState();
+  });
+
+  // The fixture list was edited on the lights page
+  socket.on("savePatch", (patch) => {
+    show.patch = patch;
+    saveShow();
+    broadcastState();
+  });
+
+  // Bring a cue's levels up live without moving the show along (for building looks)
+  socket.on("loadCue", (index) => {
+    const cue = show.cues[index];
+    if (cue && cue.type === "light") fadeTo(cue.levels || {}, cue.fade || 0);
   });
 
   socket.emit("state", state()); // newcomer sees the list
