@@ -5,19 +5,26 @@
   "main": "main.js",
   "scripts": {
     "start": "node server.js",
-    "app": "electron ."
+    "app": "electron .",
+    "tunnel": "cloudflared tunnel --config cloudflare/config.yml run",
+    "deploy": "rsync -az --delete -e 'ssh -i ~/.ssh/mc_tunnel' --exclude node_modules --exclude .git --exclude cloudflare/ --exclude show.json --exclude public/audio/ --exclude '*.log' ./ raspberrypi:~/theater-software/ && ssh -i ~/.ssh/mc_tunnel raspberrypi 'cd ~/theater-software && npm install --omit=dev --no-audit --no-fund --silent && pm2 restart theater --update-env' ",
+    "pi": "ssh -i ~/.ssh/mc_tunnel raspberrypi"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
+    "@huggingface/transformers": "^4.3.1",
     "@julusian/midi": "^3.8.1",
     "express": "^5.2.1",
+    "mammoth": "^1.13.0",
+    "pdf-parse": "^2.4.5",
     "sacn": "^4.6.2",
     "socket.io": "^4.8.4"
   },
   "devDependencies": {
-    "electron": "^44.4.5"
+    "electron": "^44.4.5",
+    "socket.io-client": "^4.8.4"
   }
 }

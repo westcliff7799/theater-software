@@ -2,9 +2,18 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <title>Lights</title>
   <link rel="stylesheet" href="/style.css">
   <style>
+    /* Black console look: gold while you work live, blue in Blind. Everything gold reads --mode, so body.blind flips it all at once. */
+    :root { --bg: #000; --panel: #0e0e0e; --line: #2c2c2c; --gold: #e3a21a; --blue: #4ea3ff; --mode: var(--gold); }
+    body.blind { --mode: var(--blue); }
+    header { background: #0e0e0e; border-bottom: 1px solid var(--mode); flex-wrap: wrap; row-gap: 6px; }
+    header h1 { color: var(--mode); font-size: 15px; letter-spacing: 2px; }
+    header button { background: #151515; border: 1px solid #444; border-radius: 2px; color: #ddd; font-weight: bold; }
+    header button:hover { border-color: var(--mode); color: var(--mode); }
+    #clock { color: var(--mode); font-size: 20px; font-weight: bold; font-variant-numeric: tabular-nums; }
     header select, header input[type=text] { padding: 6px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 4px; }
     header .master { display: flex; align-items: center; gap: 6px; color: var(--dim); font-size: 12px; margin-left: 16px; }
     header .master input { width: 120px; }
@@ -12,9 +21,9 @@
 
     main { grid-template-columns: 1fr 300px; }
     .left { display: flex; flex-direction: column; overflow: hidden; }
-    .tabs { display: flex; gap: 4px; padding: 8px 16px 0; border-bottom: 1px solid var(--line); }
-    .tabs button { border-radius: 6px 6px 0 0; border-bottom: none; }
-    .tabs button.on { background: var(--panel); color: var(--accent); }
+    .tabs { display: flex; gap: 2px; padding: 6px 12px 0; background: #0a0a0a; border-bottom: 1px solid var(--line); }
+    .tabs button { background: #161616; border: 1px solid #333; border-bottom: none; border-radius: 4px 4px 0 0; color: #bbb; font-weight: bold; font-size: 13px; padding: 7px 16px; }
+    .tabs button.on { background: #000; color: var(--mode); border-color: var(--mode); }
     .tab { display: none; flex: 1; overflow: auto; }
     .tab.on { display: block; }
 
@@ -25,7 +34,34 @@
     .fx.sel { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
     .fx small { position: absolute; top: 46px; width: 90px; text-align: center; color: var(--dim); font-size: 10px; font-weight: normal; }
 
-    /* live table, Eos style: one row per channel, one column per parameter */
+    /* channel grid: one box per channel, level under the number */
+    .grid { display: grid; grid-template-columns: repeat(24, 1fr); gap: 4px; padding: 12px; }
+    .cell { min-height: 74px; display: flex; flex-direction: column; border: 1px solid #3a3a3a; border-radius: 3px; background: #000; font-family: Menlo, monospace; cursor: pointer; }
+    .cell .num { text-align: center; padding: 3px 0; font-size: 13px; color: #777; border-bottom: 1px solid #222; }
+    .cell.patched .num { color: #ccc; }
+    .cell.sel .num { color: #fff; font-weight: bold; background: #333; }
+    .cell .lv { flex: 1; display: flex; align-items: center; justify-content: center; font-size: 15px; color: var(--mode); }
+    .cell:not(.patched) { opacity: 0.35; cursor: default; }
+    /* level colours: red = set by hand, blue = this cue brought it up, green = this cue took it down, grey = carried on from an earlier cue */
+    .cell .lv.manual { color: #ff4136; }
+    .cell .lv.up { color: #4ea3ff; }
+    .cell .lv.down { color: #35c94a; }
+    .cell .lv.tracked { color: #c8c8c8; }
+    /* playback list: a few cues around the one on stage, with the fade's progress behind the live row */
+    .playback { border-top: 1px solid #222; background: #050505; max-height: 190px; overflow: auto; }
+    .playback table { font-family: Menlo, monospace; font-size: 13px; }
+    .playback th { background: #050505; padding: 4px 10px; font-size: 11px; }
+    .playback td { padding: 4px 10px; border-bottom: 1px solid #161616; color: #bbb; white-space: nowrap; }
+    .playback tr { cursor: pointer; }
+    .playback tr.live td { color: var(--mode); }
+    .playback tr.live td:first-child::before { content: "▶ "; }
+    .playback tr.next td:first-child { color: #fff; }
+    .playback tr.other td { color: #666; }
+    .playback td.where { width: 52px; font-size: 11px; }
+    .playback td.label { width: 100%; white-space: normal; }
+    .playback .paused { color: #ff9f43; }
+
+    /* live table: one row per channel, one column per parameter */
     .live td.val { font-family: Menlo, monospace; text-align: center; width: 70px; color: var(--dim); }
     .live td.val.on { color: var(--text); }
     .live td.int.on { color: var(--standby); font-weight: bold; }
@@ -35,24 +71,72 @@
     .timing { display: flex; gap: 10px; align-items: center; padding: 12px 16px; color: var(--dim); font-size: 13px; border-top: 1px solid var(--line); }
     .timing input { width: 70px; padding: 4px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 4px; }
 
+    /* Blind: editing cues, not the stage. Blue frame, banner, and a note on the stage plot. */
+    body.blind .left { box-shadow: inset 0 0 0 2px var(--blue); }
+    .blindbar { display: none; align-items: center; gap: 14px; padding: 8px 14px; background: #0b1a2e; border-bottom: 1px solid var(--blue); color: #cfe3ff; font-size: 13px; }
+    body.blind .blindbar { display: flex; }
+    .blindbar b { color: #fff; }
+    .blindbar .onstage { color: var(--gold); }
+    .blindbar label { margin-left: auto; display: flex; gap: 6px; align-items: center; cursor: pointer; }
+    .blindbar button { padding: 4px 10px; font-size: 12px; }
+    body.blind #stage::after { content: "BLIND PREVIEW · NOT ON STAGE"; position: absolute; top: 8px; right: 12px; color: var(--blue); font-size: 11px; letter-spacing: 1px; pointer-events: none; }
+    .cell.stale { outline: 1px dashed var(--blue); outline-offset: -3px; }
+    .cell .lv.fader { color: #f5a623; } /* lifted by a fader outside the cue list */
+
+    /* light check: one light at a time, everything else dark (output only) */
+    .checkbar { display: none; align-items: center; gap: 14px; padding: 8px 14px; background: #3a0d0d; border-bottom: 1px solid #ff4136; color: #ffd6d3; font-size: 13px; }
+    body.checking .checkbar { display: flex; }
+    .checkbar b { color: #fff; }
+    .checkbar button { margin-left: auto; padding: 4px 10px; font-size: 12px; }
+    header button.checkon { background: #8f1f1f; border-color: #ff4136; color: #fff; }
+
+    /* faders outside the cue list */
+    #faderBox { margin-top: 24px; }
+    .frow { display: grid; grid-template-columns: 1fr 34px 34px; gap: 4px; align-items: center; margin-top: 10px; }
+    .frow input.fname { padding: 4px 6px; font-size: 13px; }
+    .frow input[type=range] { grid-column: 1 / 3; width: 100%; }
+    .frow .fval { text-align: right; font-family: Menlo, monospace; font-size: 12px; color: #f5a623; }
+    .frow button { padding: 4px 0; font-size: 12px; }
+    #faderBox .note { color: var(--dim); font-size: 12px; margin: 6px 0; }
+    header button:disabled { opacity: 0.3; pointer-events: none; }
+    #mode { cursor: pointer; }
+
+    /* groups and colour palettes as buttons */
+    .ds { padding: 4px 16px 16px; }
+    .ds h4 { margin: 16px 0 8px; color: var(--mode); font-size: 13px; letter-spacing: 1px; }
+    .dsRow { display: grid; grid-template-columns: repeat(auto-fill, minmax(110px, 1fr)); gap: 6px; }
+    .dsRow button { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-height: 58px; border-radius: 3px; background: #111; text-align: left; }
+    .dsRow button b { color: var(--mode); font-family: Menlo, monospace; }
+    .dsRow button span { color: #ccc; font-size: 12px; }
+    .dsRow button.sel { border-color: var(--mode); }
+    .dsRow .dots { display: flex; gap: 3px; }
+    .dsRow .dots i { width: 10px; height: 10px; border-radius: 50%; }
+    .ds p { color: var(--dim); font-size: 13px; }
+
+    /* key list, opened with ? */
+    #keys { position: fixed; inset: 40px 15%; z-index: 10; overflow: auto; background: #0b0b0b; border: 1px solid var(--mode); border-radius: 6px; padding: 16px 24px; display: none; box-shadow: 0 10px 40px #000; }
+    #keys.on { display: block; }
+    #keys h3 { color: var(--mode); margin-top: 0; }
+    #keys td { padding: 4px 12px; font-size: 14px; }
+    #keys td:first-child { font-family: Menlo, monospace; color: var(--mode); white-space: nowrap; }
+    #keys .eg td:first-child { color: #fff; }
+
     /* patch table */
     .patch { padding: 16px; }
     .patch input, .patch select { padding: 4px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 4px; width: 100%; }
     .patch td:last-child { width: 50px; }
-
-    /* raw channel faders */
-    .chanBar { padding: 12px 16px 0; color: var(--dim); font-size: 12px; }
-    .chanBar input { width: 60px; padding: 4px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 4px; }
-    .faders { display: grid; grid-template-columns: repeat(24, 1fr); gap: 6px; padding: 16px; }
-    .fader { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; color: var(--dim); }
-    .fader input { writing-mode: vertical-lr; direction: rtl; height: 160px; width: 24px; }
-    .fader b { color: var(--text); }
-    .fader.patched span { color: var(--accent); }
+    .patch th { text-transform: none; font-size: 14px; color: #ccc; }
 
     /* command line */
-    .cmd { display: flex; gap: 10px; align-items: center; padding: 10px 16px; border-top: 1px solid var(--line); background: var(--panel); }
-    .cmd input { flex: 1; padding: 8px; font-family: Menlo, monospace; font-size: 14px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 4px; }
-    .cmd span { color: var(--dim); font-size: 12px; white-space: nowrap; }
+    .cmd { display: flex; gap: 10px; align-items: center; padding: 8px 12px; background: #000; border-top: 1px solid #222; }
+    .cmd .prompt { color: var(--mode); font-family: Menlo, monospace; font-size: 16px; font-weight: bold; }
+    .cmd .line { flex: 1; min-height: 32px; padding: 6px 8px; font-family: Menlo, monospace; font-size: 16px; background: #0a0a0a; color: #fff; border: 1px solid var(--mode); border-radius: 2px; white-space: pre; overflow: hidden; }
+    .cmd .line::after { content: "_"; color: var(--mode); animation: blink 1s steps(1) infinite; }
+    @keyframes blink { 50% { opacity: 0; } }
+    .cmd #hint.err { color: #ff5a4f; }
+    .cmd button { padding: 6px 12px; font-weight: bold; }
+    .cmd button.gobtn { background: var(--go); border-color: var(--go); }
+    .cmd span { color: #999; font-size: 12px; white-space: nowrap; }
 
     /* selection panel */
     .inspector h3 { margin: 0 0 4px; }
@@ -64,6 +148,9 @@
     .swatches { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
     .swatch { width: 34px; height: 34px; border-radius: 6px; border: 1px solid var(--line); cursor: pointer; }
     #colorBox { margin-top: 20px; }
+    main { grid-template-columns: 1fr 300px; }          /* Edit: grid · Selected */
+    body.mode-show main { grid-template-columns: 1fr 400px; } /* Show: grid · live script */
+    #liveScript { min-height: 0; }
     #colorBox.off { opacity: 0.25; pointer-events: none; }
     #colorBox input[type=color] { width: 100%; height: 40px; padding: 0; border: 1px solid var(--line); background: #111; border-radius: 4px; }
   </style>
@@ -71,27 +158,44 @@
 <body>
     <script src="/nav.js"></script>
   <header>
-    <h1>Lights</h1>
+    <h1 id="mode" title="B switches Live / Blind">LIVE</h1>
     <select id="target"></select>
     <button id="load">Go to cue</button>
-    <button id="record">Record into cue</button>
+    <button id="record" data-edit-only>Record into cue</button>
     <input id="newLabel" type="text" placeholder="New look name">
-    <button id="recordNew">Record as new</button>
-    <button id="clear">Clear all</button>
+    <button id="recordNew" data-edit-only>Record as new</button>
+    <button id="clear" data-edit-only>Clear all</button>
     <label class="master">Master <input id="master" type="range" min="0" max="255" value="255"> <b id="masterText">100%</b></label>
     <button id="blackout" class="blackout">Blackout</button>
+    <button id="checkBtn" title="Shift+L: one light at a time at full, everything else dark">Light check</button>
+    <span id="clock"></span>
   </header>
 
   <main>
     <div class="left">
       <div class="tabs">
-        <button class="on" data-tab="stageTab">Stage</button>
-        <button data-tab="liveTab">Live Table</button>
-        <button data-tab="patchTab">Patch</button>
-        <button data-tab="chanTab">Channels</button>
+        <button class="on" data-tab="gridTab">1 Live</button>
+        <button data-tab="stageTab">2 Stage</button>
+        <button data-tab="liveTab">3 Table</button>
+        <button data-tab="patchTab" data-edit-only>4 Patch</button>
+        <button data-tab="dsTab">5 Groups</button>
+      </div>
+      <div class="blindbar" id="blindBar">
+        <span>BLIND · editing cue <b id="blindCue"></b>. The stage is not changing.</span>
+        <span class="onstage" id="blindStage"></span>
+        <label title="K"><input type="checkbox" id="cueOnly"> Only this cue (later cues stay as they are)</label>
+        <button id="toLive">Back to Live (B)</button>
+      </div>
+      <div class="checkbar" id="checkBar">
+        <span>LIGHT CHECK · <b id="checkWho"></b> at full, everything else dark. ← / → for the next light.</span>
+        <button id="checkEnd">End check (Esc)</button>
       </div>
 
-      <div class="tab on" id="stageTab">
+      <div class="tab on" id="gridTab">
+        <div class="grid" id="grid"></div>
+      </div>
+
+      <div class="tab" id="stageTab">
         <div id="stage"><div class="edge">AUDIENCE</div></div>
       </div>
 
@@ -101,31 +205,46 @@
           <tbody id="liveRows"></tbody>
         </table>
         <div class="timing">
-          Timing for cue <b id="timingCue">–</b>: fade
-          <input id="cueFade" type="number" min="0" step="0.1"> seconds
+          Timing for cue <b id="timingCue">–</b>: fade up
+          <input id="cueFade" type="number" min="0" step="0.1"> down
+          <input id="cueDown" type="number" min="0" step="0.1"> seconds
         </div>
       </div>
 
       <div class="tab patch" id="patchTab">
         <table>
-          <thead><tr><th>#</th><th>Name</th><th>Type</th><th>Address</th><th>Uses</th><th></th></tr></thead>
+          <thead><tr><th>Chan</th><th>Address</th><th>Type</th><th>Label</th><th>Uses</th><th></th></tr></thead>
           <tbody id="patchRows"></tbody>
         </table>
         <p><button id="addFixture">+ Add fixture</button></p>
       </div>
 
-      <div class="tab" id="chanTab">
-        <div class="chanBar">Show channels 1 to <input id="chCount" type="number" min="1" max="512" value="48"> (blue numbers are patched)</div>
-        <div class="faders" id="faders"></div>
+      <div class="tab ds" id="dsTab">
+        <h4>GROUPS</h4>
+        <div class="dsRow" id="groupBtns"></div>
+        <h4>COLOUR PALETTES</h4>
+        <div class="dsRow" id="cpBtns"></div>
+        <p>Select some channels, then type <b>R G 1 Enter</b> to save them as group 1, or <b>R P 1 Enter</b> to save their colours as palette 1.
+          Click a group to select it (shift-click adds to the selection). Click a palette to colour the selected channels.</p>
+      </div>
+
+      <div class="playback">
+        <table>
+          <thead><tr><th></th><th>Cue</th><th>Label</th><th>Type</th><th>Up</th><th>Down</th><th>Follow</th><th id="pbState"></th></tr></thead>
+          <tbody id="pbRows"></tbody>
+        </table>
       </div>
 
       <div class="cmd">
-        <input id="cmd" placeholder="1 thru 4 @ 50   ·   1 + 3 @ full   ·   all @ out">
-        <span id="hint">Enter to run</span>
+        <span class="prompt" id="prompt">LIVE:</span>
+        <div class="line" id="cmd" title="Type commands on the keyboard, e.g. 1 T 5 A 50 Enter. Press ? for every key."></div>
+        <span id="hint">Press ? for keys</span>
+        <button id="backBtn" title="Back (Shift+Space)">Back</button>
+        <button id="goBtn" class="gobtn" title="Go (Space)">GO</button>
       </div>
     </div>
 
-    <aside class="inspector">
+    <aside class="inspector" data-edit-only>
       <h3>Selected</h3>
       <div class="who" id="who"></div>
       <div class="level" id="levelText">0%</div>
@@ -142,12 +261,60 @@
         <input id="picker" type="color" value="#ffffff">
         <div class="swatches" id="swatches"></div>
       </div>
+      <div id="faderBox">
+        <h3>Faders</h3>
+        <div class="note">House lights, work lights, preshow… They sit outside the cues and add to them. Select channels, set their levels, then press Set on a fader.</div>
+        <div id="faderList"></div>
+        <p data-edit-only><button id="addFader">+ Add fader</button></p>
+      </div>
     </aside>
+    <section id="liveScript" data-show-only></section>
   </main>
 
+  <div id="keys">
+    <h3>Keyboard commands</h3>
+    <table>
+      <tr class="eg"><td>1 T 5 A 50 Enter</td><td>channels 1 to 5 at 50%</td></tr>
+      <tr class="eg"><td>1 + 3 - 2 F</td><td>add and take away channels, then full</td></tr>
+      <tr class="eg"><td>G 2 A 75 Enter</td><td>group 2 at 75%</td></tr>
+      <tr class="eg"><td>] or [</td><td>selected channels 10% brighter / dimmer</td></tr>
+      <tr class="eg"><td>R Enter</td><td>save the stage as the next cue (only what changed is stored)</td></tr>
+      <tr class="eg"><td>R Q 5 S 3 / 6 L Front wash Enter</td><td>save as cue 5, fading up in 3s and down in 6s, called "Front wash"</td></tr>
+      <tr class="eg"><td>1 T 4 R Q 6 Enter</td><td>save only channels 1 to 4 into cue 6</td></tr>
+      <tr class="eg"><td>U Enter</td><td>put the red (hand-set) levels into the cue that's on stage</td></tr>
+      <tr class="eg"><td>X Enter</td><td>let the red levels go back to the cue (2 X Enter: just channel 2)</td></tr>
+      <tr class="eg"><td>J Q 4 Enter</td><td>jump straight to cue 4's look (J Q 0 Enter: top of the show)</td></tr>
+      <tr class="eg"><td>Q 3 L Opening Enter</td><td>rename cue 3 (Q 3 S 4 Enter changes its fade)</td></tr>
+      <tr class="eg"><td>D Q 3 Enter Enter</td><td>delete cue 3 (asks first)</td></tr>
+      <tr class="eg"><td>1 C 4 T 6 Enter</td><td>copy channel 1's level and colour onto 4 to 6</td></tr>
+      <tr class="eg"><td>3 L Spot SR Enter</td><td>rename channel 3</td></tr>
+      <tr class="eg"><td>M 40 A 50 Enter</td><td>raw DMX address 40 at 50%</td></tr>
+      <tr><td>A or @</td><td>at</td></tr><tr><td>T</td><td>thru</td></tr><tr><td>F / O</td><td>full / out</td></tr>
+      <tr><td>+ / -</td><td>add / take away channels (also = for +)</td></tr>
+      <tr><td>Shift+O</td><td>solo: everything not selected goes out</td></tr>
+      <tr><td>Q</td><td>cue</td></tr><tr><td>G</td><td>group</td></tr><tr><td>P</td><td>colour palette</td></tr>
+      <tr><td>R</td><td>record</td></tr><tr><td>U</td><td>update</td></tr><tr><td>X</td><td>release</td></tr><tr><td>S</td><td>seconds (fade time)</td></tr>
+      <tr><td>L</td><td>label: type the name, then Enter</td></tr><tr><td>C</td><td>copy</td></tr><tr><td>J</td><td>jump</td></tr><tr><td>D</td><td>delete</td></tr>
+      <tr><td>Space</td><td>GO</td></tr><tr><td>Shift+Space</td><td>Back (pauses a fade that is still running)</td></tr>
+      <tr><td>Ctrl+A</td><td>select every channel that is on</td></tr>
+      <tr><td>B</td><td>Blind on / off: edit cues without touching the stage</td></tr>
+      <tr><td>Page Up / Page Down</td><td>in Blind: previous / next light cue (Q 7 Enter opens cue 7)</td></tr>
+      <tr><td>K</td><td>in Blind: only this cue (later cues stay as they are)</td></tr>
+      <tr><td>Ctrl+Z</td><td>undo the last change to cues, groups, palettes or faders</td></tr>
+      <tr><td>Shift+L</td><td>light check: just the selected light at full, everything else dark (← / → steps, Esc ends)</td></tr>
+      <tr><td>← / →</td><td>previous / next channel</td></tr>
+      <tr><td>Backspace</td><td>undo one word; Esc clears the line</td></tr>
+      <tr><td>↑</td><td>bring back the last command</td></tr>
+    </table>
+    <p style="color:#999">In Blind, GO, Back, Master and Blackout still work on stage; everything you type only changes the cue. Channels whose cue changed in Blind get a dashed outline in Live: X Enter brings them up to date.</p>
+    <p style="color:#999">Level colours: <b style="color:#ff4136">red</b> set by hand, <b style="color:#4ea3ff">blue</b> this cue brought it up, <b style="color:#35c94a">green</b> this cue took it down, <b style="color:#c8c8c8">grey</b> carried on from an earlier cue, <b style="color:#f5a623">amber</b> lifted by a fader. Esc or ? closes this.</p>
+  </div>
+
   <script src="/socket.io/socket.io.js"></script>
+  <script src="/livescript.js"></script>
   <script>
     const socket = io();
+    installLiveScript(document.getElementById("liveScript"), socket);
     const $ = (id) => document.getElementById(id);
 
     // Fixture types: how many DMX channels each uses and what each channel does.
@@ -162,6 +329,7 @@
     let dmx = new Array(512).fill(0); // live levels, always from the server
     let patch = [];                    // fixtures from show.json
     let cues = [];
+    let currentCue = -1;
     let selected = new Set();          // fixture indexes
     const memory = new Map();          // fixture index -> last colour, for fixtures whose colour channels go to 0 when dark
     let master = 255, beforeBlackout = 255;
@@ -169,7 +337,7 @@
     // ---- reading a fixture out of the raw DMX array
     const hasColor = (f) => "r" in TYPES[f.type];
     const hasDimmer = (f) => "i" in TYPES[f.type];
-    const chan = (f, key) => dmx[f.address - 1 + TYPES[f.type][key]] ?? 0;
+    const chan = (f, key) => view()[f.address - 1 + TYPES[f.type][key]] ?? 0;
 
     function level(i) {
       const f = patch[i];
@@ -180,7 +348,10 @@
       const f = patch[i];
       if (!hasColor(f)) return null;
       const raw = { r: chan(f, "r"), g: chan(f, "g"), b: chan(f, "b") };
-      if (hasDimmer(f)) return raw; // colour channels hold the colour itself
+      if (hasDimmer(f)) { // colour channels hold the colour itself; all zero means "no colour picked yet"
+        if (raw.r || raw.g || raw.b) return raw;
+        return memory.get(i) || { r: 255, g: 255, b: 255 };
+      }
       const max = Math.max(raw.r, raw.g, raw.b);
       if (max === 0) return memory.get(i) || { r: 255, g: 255, b: 255 };
       return { r: Math.round(raw.r * 255 / max), g: Math.round(raw.g * 255 / max), b: Math.round(raw.b * 255 / max) };
@@ -205,7 +376,7 @@
         if (c) memory.set(i, c);
         Object.assign(all, channelsFor(i, lv ?? level(i), c ?? color(i) ?? { r: 255, g: 255, b: 255 }));
       }
-      if (Object.keys(all).length) socket.emit("setChannels", all);
+      sendLevels(all);
     }
 
     // ---- stage plot
@@ -303,19 +474,73 @@
         tr.classList.toggle("sel", selected.has(i));
       });
     }
+    // The cue picked in the header, by its number (positions move when cues are added or deleted)
+    const targetIndex = () => cues.findIndex((c) => c.type === "light" && c.number === $("target").value);
     function paintTiming() {
-      const cue = cues[Number($("target").value)];
+      const cue = cues[targetIndex()];
       $("timingCue").textContent = cue ? cue.number + " " + cue.label : "–";
       $("cueFade").value = cue ? cue.fade ?? 0 : "";
+      $("cueDown").value = cue ? cue.downFade ?? cue.fade ?? 0 : "";
     }
     $("target").onchange = paintTiming;
-    $("cueFade").onchange = (e) => {
-      const cue = cues[Number($("target").value)];
+    // Changing "up" alone keeps a cue without its own down time that way (down follows up)
+    function saveTiming(e) {
+      const cue = cues[targetIndex()];
       if (!cue) return;
-      cue.fade = Number(e.target.value) || 0;
+      if (e.target.id === "cueFade") cue.fade = Number($("cueFade").value) || 0;
+      else {
+        const down = $("cueDown").value === "" ? cue.fade : Number($("cueDown").value) || 0;
+        if (down !== cue.fade) cue.downFade = down;
+        else delete cue.downFade;
+      }
       socket.emit("saveCues", cues);
-    };
+    }
+    $("cueFade").onchange = saveTiming;
+    $("cueDown").onchange = saveTiming;
 
+    // ---- channel grid: one box per channel, level under the number
+    function buildGrid() {
+      const box = $("grid"), n = Math.max(48, Math.ceil(patch.length / 24) * 24); // whole rows of 24
+      box.innerHTML = "";
+      for (let i = 0; i < n; i++) {
+        const cell = document.createElement("div");
+        cell.className = "cell";
+        cell.innerHTML = `<div class="num">${i + 1}</div><div class="lv"></div>`;
+        cell.onclick = (e) => {
+          if (!patch[i]) return;                       // nothing patched there
+          if (!e.shiftKey) selected.clear();
+          selected.has(i) ? selected.delete(i) : selected.add(i);
+          paintAll();
+        };
+        box.appendChild(cell);
+      }
+    }
+    function paintGrid() {
+      [...$("grid").children].forEach((cell, i) => {
+        const f = patch[i], own = f ? level(i) : 0;
+        // In Live, a fader can lift a channel above its cue level: show what really goes out, in amber
+        const lifted = f && !inBlind() ? (hasDimmer(f) ? faderLevel(f.address + TYPES[f.type].i) : Math.max(...dmxOf(i).map(faderLevel))) : 0;
+        const lv = Math.max(own, lifted);
+        cell.classList.toggle("patched", !!f);
+        cell.classList.toggle("sel", selected.has(i));
+        const lvEl = cell.querySelector(".lv");
+        lvEl.textContent = !f || lv === 0 ? "" : lv === 255 ? "FULL" : pct(lv);
+        lvEl.className = "lv " + (f && lv > 0 ? (lifted > own ? "fader" : markOf(i)) : "");
+        cell.classList.toggle("stale", !!f && !inBlind() && dmxOf(i).some((ch) => staleSet.has(ch)));
+      });
+    }
+    // Why a channel is at its level: manual (by hand), up / down (the last cue moved it) or tracked (from earlier)
+    function markOf(i) {
+      const f = patch[i];
+      const chans = hasDimmer(f) ? [f.address + TYPES[f.type].i] : dmxOf(i); // the brightness channel decides
+      let m = "tracked";
+      for (const ch of chans) {
+        if (inBlind()) { if (blindMoves[ch]) m = blindMoves[ch]; continue; } // Blind: what the open cue changes
+        if (manualSet.has(ch)) return "manual";
+        if (moves[ch]) m = moves[ch];
+      }
+      return m;
+    }
     // ---- patch table
     function buildPatch() {
       const body = $("patchRows");
@@ -323,9 +548,9 @@
       patch.forEach((f, i) => {
         const tr = document.createElement("tr");
         tr.innerHTML = `<td>${i + 1}</td>
-          <td><input data-k="name"></td>
-          <td><select data-k="type">${Object.keys(TYPES).map((t) => `<option>${t}</option>`).join("")}</select></td>
           <td><input data-k="address" type="number" min="1" max="512"></td>
+          <td><select data-k="type">${Object.keys(TYPES).map((t) => `<option>${t}</option>`).join("")}</select></td>
+          <td><input data-k="name"></td>
           <td>${f.address} to ${f.address + TYPES[f.type].ch - 1}</td>
           <td><button title="Remove">✕</button></td>`;
         for (const inp of tr.querySelectorAll("[data-k]")) {
@@ -337,9 +562,8 @@
           };
         }
         tr.querySelector("button").onclick = () => {
-          patch.splice(i, 1);
           selected.clear();
-          socket.emit("savePatch", patch);
+          socket.emit("removeFixture", i + 1); // the server also renumbers groups and palettes
         };
         body.appendChild(tr);
       });
@@ -356,34 +580,6 @@
       socket.emit("savePatch", patch);
     };
 
-    // ---- raw channel faders
-    function buildFaders() {
-      const n = Math.max(1, Math.min(512, Number($("chCount").value) || 24));
-      const box = $("faders");
-      box.innerHTML = "";
-      for (let ch = 1; ch <= n; ch++) {
-        const div = document.createElement("div");
-        div.className = "fader";
-        div.id = "fader" + ch;
-        div.innerHTML = `<input type="range" min="0" max="255" value="0"><b>0</b><span>${ch}</span>`;
-        div.querySelector("input").oninput = (e) =>
-          socket.emit("setChannel", { channel: ch, level: Number(e.target.value) });
-        box.appendChild(div);
-      }
-      paintFaders();
-    }
-    function paintFaders() {
-      const patched = new Set();
-      for (const f of patch) for (let k = 0; k < TYPES[f.type].ch; k++) patched.add(f.address + k);
-      for (const div of $("faders").children) {
-        const ch = Number(div.querySelector("span").textContent);
-        div.querySelector("input").value = dmx[ch - 1];
-        div.querySelector("b").textContent = dmx[ch - 1];
-        div.classList.toggle("patched", patched.has(ch));
-      }
-    }
-    $("chCount").onchange = buildFaders;
-
     // ---- selection panel
     const hex = ({ r, g, b }) => "#" + [r, g, b].map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
     const rgb = (h) => ({ r: parseInt(h.slice(1, 3), 16), g: parseInt(h.slice(3, 5), 16), b: parseInt(h.slice(5, 7), 16) });
@@ -392,7 +588,7 @@
       const list = [...selected];
       $("who").textContent = list.length
         ? list.map((i) => `${i + 1} ${patch[i].name}`).join(", ")
-        : "Click fixtures on the stage (shift-click for more), or type 1 thru 4 below";
+        : "Click channels (shift-click for more), or type 1 T 4 Enter for channels 1 to 4";
       const lv = list.length ? level(list[0]) : 0;
       $("intensity").value = lv;
       $("levelText").textContent = Math.round(lv / 255 * 100) + "%";
@@ -411,37 +607,653 @@
       $("swatches").appendChild(s);
     }
 
-    // ---- command line:  "1 thru 4 @ 50"   "1 + 3 @ full"   "all @ out"   "2" (just select)
-    function runCommand(text) {
-      const t = text.trim().toLowerCase().replace(/\s+/g, " ").replace(/ at /g, " @ ");
-      if (!t) return;
-      const [selPart, lvPart] = t.split("@").map((s) => s.trim());
-      if (selPart) {
-        const picks = new Set();
-        if (selPart === "all") patch.forEach((_, i) => picks.add(i));
-        else for (const part of selPart.split("+")) {
-          const m = part.trim().match(/^(\d+)(?: ?(?:thru|-|>) ?(\d+))?$/);
-          if (!m) return hint("Didn't understand that. Try: 1 thru 4 @ 50");
-          const a = Number(m[1]), b = Number(m[2] || m[1]);
-          for (let n = Math.min(a, b); n <= Math.max(a, b); n++) if (patch[n - 1]) picks.add(n - 1);
+    // ---- Blind: show and edit a cue's stored look while the stage keeps playing
+    let blindNo = null;       // number of the cue open in Blind, null = Live
+    let blindPos = -1;        // where that cue was in the list (tells two cues with the same number apart)
+    let blindLook = null;     // that cue's whole look, worked out from the cue list
+    let blindMoves = {};      // what that cue changes compared to the cue before (blue / green)
+    let staleSet = new Set(); // channels whose cue changed in Blind but whose stage level didn't
+    const inBlind = () => blindNo !== null;
+    const view = () => (inBlind() && blindLook ? blindLook : dmx);
+    const lightIndexes = () => cues.map((c, i) => (c.type === "light" ? i : -1)).filter((i) => i >= 0);
+    function blindIndex() {
+      if (!inBlind()) return -1;
+      const c = cues[blindPos];
+      if (c && c.type === "light" && sameNumber(c.number, blindNo)) return blindPos;
+      let best = -1; // the cue moved: the light cue with that number nearest to where it was
+      cues.forEach((c, i) => {
+        if (c.type === "light" && sameNumber(c.number, blindNo) && (best < 0 || Math.abs(i - blindPos) < Math.abs(best - blindPos))) best = i;
+      });
+      return best;
+    }
+    function setBlind(i) { blindNo = cues[i].number; blindPos = i; }
+    // The same sums as the server: every light cue up to `index`, in order
+    function lookAt(index) {
+      const look = new Array(512).fill(0);
+      for (let k = 0; k <= index && k < cues.length; k++)
+        if (cues[k].type === "light") for (const [ch, lv] of Object.entries(cues[k].levels || {})) look[ch - 1] = lv;
+      return look;
+    }
+    function movesAt(index) {
+      const before = lookAt(index - 1), out = {};
+      for (const [ch, lv] of Object.entries(cues[index]?.levels || {})) if (lv !== before[ch - 1]) out[ch] = lv > before[ch - 1] ? "up" : "down";
+      return out;
+    }
+    function onStageIndex() {
+      let i = currentCue;
+      while (i >= 0 && cues[i].type !== "light") i--;
+      return i;
+    }
+    // Every level change on this page goes through here: the stage in Live, the open cue in Blind.
+    // In Blind a dragged slider is sent ten times a second at most (each send saves the cue).
+    let blindPending = null, blindTimer = null;
+    function sendLevels(all) {
+      if (!Object.keys(all).length) return;
+      if (!inBlind()) return socket.emit("setChannels", all);
+      blindPending = { ...(blindPending || {}), ...all };
+      if (!blindTimer) flushBlind();
+    }
+    function flushBlind() {
+      blindTimer = null;
+      if (!blindPending || !inBlind()) return (blindPending = null);
+      socket.emit("blindSet", { number: blindNo, index: blindIndex(), levels: blindPending, cueOnly: $("cueOnly").checked }, (msg) => hint(msg));
+      blindPending = null;
+      blindTimer = setTimeout(() => { if (blindPending) flushBlind(); else blindTimer = null; }, 100);
+    }
+    function openBlind(number) {
+      if (checking) endCheck();
+      const list = lightIndexes();
+      if (!list.length) return hint("Record a cue first, then B opens it in Blind", true);
+      const at = number !== undefined ? cues.findIndex((c) => c.type === "light" && sameNumber(c.number, number)) : onStageIndex() >= 0 ? onStageIndex() : list[0];
+      setBlind(at >= 0 ? at : list[0]);
+      refreshBlind();
+    }
+    function closeBlind() {
+      blindNo = null;
+      blindPos = -1;
+      $("cueOnly").checked = false;
+      refreshBlind();
+    }
+    function stepBlind(dir) {
+      const list = lightIndexes(), at = list.indexOf(blindIndex());
+      const to = list[Math.max(0, Math.min(list.length - 1, at + dir))];
+      if (to !== undefined) { setBlind(to); refreshBlind(); }
+    }
+    function refreshBlind() {
+      if (inBlind() && blindIndex() < 0) { // the open cue was deleted (maybe on another page)
+        const gone = blindNo, list = lightIndexes();
+        line = []; // whatever was half typed was meant for that cue
+        paintLine();
+        if (list.length) { // stay in Blind, on the light cue nearest to where it was
+          setBlind(list.filter((i) => i < blindPos).pop() ?? list[0]);
+          hint(`Cue ${gone} was deleted. Now editing cue ${blindNo} in Blind`, true);
+        } else {
+          blindNo = null;
+          blindPos = -1;
+          hint(`Cue ${gone} was deleted and there are no light cues left. Back in Live`, true);
         }
-        selected = picks;
       }
-      if (lvPart !== undefined) {
-        const lv = lvPart === "full" ? 255 : lvPart === "out" ? 0 : Math.round(Math.min(100, Number(lvPart)) * 2.55);
-        if (Number.isNaN(lv)) return hint("Level must be 0 to 100, full, or out");
-        setSelection(lv, null);
+      if (inBlind()) blindPos = blindIndex();
+      const i = blindIndex();
+      blindLook = inBlind() ? lookAt(i) : null;
+      blindMoves = inBlind() ? movesAt(i) : {};
+      document.body.classList.toggle("blind", inBlind());
+      $("mode").textContent = inBlind() ? "BLIND" : "LIVE";
+      $("prompt").textContent = inBlind() ? `BLIND Q${blindNo}:` : "LIVE:";
+      document.title = inBlind() ? "BLIND · Lights" : "Lights";
+      for (const id of ["load", "record", "recordNew", "clear"]) $(id).disabled = inBlind(); // these act on the stage
+      if (inBlind()) {
+        $("blindCue").textContent = `${cues[i].number}${cues[i].label ? " " + cues[i].label : ""}`;
+        const on = cues[onStageIndex()];
+        $("blindStage").textContent = on ? `On stage: ${on.number}${on.label ? " " + on.label : ""}` : "On stage: top of show";
       }
       paintAll();
-      hint("Enter to run");
-      $("cmd").value = "";
     }
-    const hint = (msg) => ($("hint").textContent = msg);
-    $("cmd").onkeydown = (e) => { if (e.key === "Enter") runCommand(e.target.value); };
+    $("mode").onclick = () => (inBlind() ? closeBlind() : openBlind());
+    $("toLive").onclick = (e) => { closeBlind(); e.target.blur(); };
+    $("cueOnly").onchange = (e) => e.target.blur();
+
+    // ---- command line. Keys add words to the line (press ? for the list) and Enter runs it:
+    //   Ch 1 Thru 5 At 50 · Group 2 Full · Record Cue 3 Time 5 / 2 · Jump Cue 4 · Release
+    let line = [];          // words ("Thru", "At"), numbers ("12", "2.5") and label text ('"Front wash')
+    let lastLine = [];      // the up arrow brings it back
+    let confirmDelete = false;
+    let groups = {}, palettes = {};
+    let manualSet = new Set(), moves = {}; // from the server: DMX channels set by hand / moved by the last cue
+
+    const isNum = (t) => typeof t === "string" && /^(\d+\.?\d*|\.\d+)$/.test(t);
+    const isText = (t) => typeof t === "string" && t[0] === '"';
+    const hint = (msg, err) => { $("hint").textContent = msg || ""; $("hint").classList.toggle("err", !!err); };
+    function paintLine() {
+      $("cmd").textContent = line.map((t) => (isText(t) ? t + '"' : t)).join(" ");
+    }
+    function post(word) {
+      confirmDelete = false;
+      line.push(word);
+      paintLine();
+    }
+    function postDigit(d) {
+      confirmDelete = false;
+      const last = line[line.length - 1];
+      if (isNum(last)) {
+        if (d === "." && last.includes(".")) return; // one decimal point per number
+        line[line.length - 1] += d;
+      } else {
+        if (!line.length) line.push("Ch");
+        line.push(d);
+      }
+      paintLine();
+    }
+    const typingLabel = () => line.length && (line[line.length - 1] === "Label" || isText(line[line.length - 1]));
+    function typeText(ch) {
+      if (line[line.length - 1] === "Label") line.push('"' + ch);
+      else line[line.length - 1] += ch;
+      paintLine();
+    }
+    function backspace() {
+      confirmDelete = false; // a changed delete line has to be confirmed again
+      const last = line[line.length - 1];
+      if (last === undefined) return;
+      if ((isText(last) || isNum(last)) && last.length > 1) line[line.length - 1] = last.slice(0, -1);
+      else line.pop();
+      if (line.length === 1 && line[0] === "Ch") line = [];
+      paintLine();
+    }
+    function run() {
+      if (!line.length) return;
+      if (line[0] === "Delete" && !confirmDelete) { // deleting asks first: Enter twice
+        confirmDelete = true;
+        return hint("Press Enter again to delete");
+      }
+      const t = line;
+      lastLine = t.slice();
+      line = [];
+      confirmDelete = false;
+      paintLine();
+      try { hint(execute(t)); } catch (err) { hint(err.message, true); }
+      paintAll();
+    }
+
+    // Channel list -> fixture indexes.  1 Thru 5 - 3 + Group 2
+    function pick(toks, start = new Set()) {
+      const out = new Set(start);
+      let sign = 1, prev = null, thru = false;
+      for (let k = 0; k < toks.length; k++) {
+        const x = toks[k];
+        if (x === "Ch") continue;
+        if (x === "+" || x === "-") { sign = x === "+" ? 1 : -1; continue; }
+        if (x === "Thru") { thru = true; continue; }
+        let nums = [];
+        if (x === "Group") {
+          const g = groups[toks[++k]];
+          if (!g) throw new Error(`No group ${toks[k] ?? ""}`);
+          nums = g.channels;
+        } else if (isNum(x) && x !== ".") {
+          const n = Math.floor(Number(x));
+          if (thru && prev !== null) {
+            const top = Math.min(Math.max(prev, n), patch.length); // never loop past the last fixture
+            for (let c = Math.min(prev, n); c <= top; c++) nums.push(c);
+          } else nums = [n];
+          prev = n;
+          thru = false;
+        } else throw new Error(`Can't use ${x} there`);
+        for (const n of nums) if (patch[n - 1]) sign > 0 ? out.add(n - 1) : out.delete(n - 1);
+      }
+      return out;
+    }
+    // Set fixtures from fn(i) -> { lv, c } (either may be missing = leave as is)
+    function setEach(fn, which = selected) {
+      const all = {};
+      for (const i of which) {
+        const r = fn(i);
+        if (!r) continue;
+        const now = color(i);
+        if (now && level(i) > 0) memory.set(i, now); // remember the colour before it goes dark
+        if (r.c) memory.set(i, r.c);
+        Object.assign(all, channelsFor(i, r.lv ?? level(i), r.c ?? now ?? { r: 255, g: 255, b: 255 }));
+      }
+      sendLevels(all);
+    }
+    const clampLv = (v) => Math.max(0, Math.min(255, Math.round(v)));
+    const pctLv = (n) => clampLv(Math.min(100, Number(n)) * 2.55);
+    const dmxOf = (i) => { const f = patch[i]; return Array.from({ length: TYPES[f.type].ch }, (_, k) => f.address + k); };
+    const sameNumber = (a, b) => a === b || (a !== "" && b !== "" && Number(a) === Number(b));
+    // The light cue with this number (sound and mix cues belong to the other pages)
+    function lightCue(n) {
+      const i = cues.findIndex((c) => sameNumber(c.number, n));
+      if (i < 0) throw new Error(`No cue ${n} yet. R Q ${n} Enter records it`);
+      if (cues[i].type !== "light") throw new Error(`Cue ${n} is a ${cues[i].type} cue. Change it on the Stage Manager page`);
+      return cues[i];
+    }
+    const VERBS = ["At", "Full", "Out", "Solo", "Copy", "Palette", "Label", "Release"];
+
+    function execute(t) {
+      const num = (k) => {
+        if (!isNum(t[k]) || t[k] === ".") throw new Error(`Needs a number after ${t[k - 1] ?? "that"}`);
+        return t[k];
+      };
+      const labelText = () => { const k = t.indexOf("Label"); return k < 0 ? undefined : (t[k + 1] || '"').slice(1).trim(); };
+      const timing = () => {
+        const k = t.indexOf("Time");
+        if (k < 0) return {};
+        return { up: Number(num(k + 1)), down: t[k + 2] === "/" ? Number(num(k + 3)) : undefined };
+      };
+      const levelOf = (x) => (x === "Full" ? 255 : x === "Out" ? 0 : isNum(x) && x !== "." ? pctLv(x) : null);
+
+      // "1 Thru 3 Record ...": select first, then record just those
+      const r = t.indexOf("Record");
+      if (r > 0) {
+        const sel = t.slice(0, r);
+        selected = pick(sel, sel[0] === "+" || sel[0] === "-" ? selected : new Set());
+        return record(t.slice(r), true);
+      }
+      const w = t[0];
+      if (w === "Record") return record(t, false);
+      if (inBlind() && (w === "Jump" || w === "Release" || t.includes("Release")))
+        throw new Error(`${w === "Jump" ? "Jump" : "Release"} works on the stage. Press B to go back to Live`);
+      if (inBlind() && w === "Update") return "In Blind, changes are saved as you make them";
+
+      if (w === "Update") {
+        const number = t[1] === "Cue" ? num(2) : t[1] !== undefined ? num(1) : undefined;
+        if (number !== undefined) lightCue(number);
+        socket.emit("update", { number }, (msg) => hint(msg));
+        return "";
+      }
+      if (w === "Delete") {
+        const n = num(2);
+        if (t[1] === "Cue") {
+          lightCue(n);
+          socket.emit("deleteCue", { number: n });
+          return `Deleted cue ${n}`;
+        }
+        const store = t[1] === "Group" ? groups : t[1] === "Palette" ? palettes : null;
+        if (!store) throw new Error("Delete a Cue, Group or Palette");
+        if (!store[n]) throw new Error(`No ${t[1].toLowerCase()} ${n}`);
+        delete store[n];
+        socket.emit(store === groups ? "saveGroups" : "savePalettes", store);
+        return `Deleted ${t[1].toLowerCase()} ${n}`;
+      }
+      if (w === "Jump") {
+        const k = t[1] === "Cue" ? 2 : 1, time = timing().up;
+        if (t[k] === "Out" || Number(num(k)) === 0) { socket.emit("jump", { number: null, time }); return "Top of the show"; }
+        lightCue(t[k]);
+        socket.emit("jump", { number: t[k], time });
+        return `Jump to cue ${t[k]}`;
+      }
+      if (w === "Cue") {
+        const n = num(1), cue = lightCue(n);
+        const label = labelText(), time = timing();
+        if (label === undefined && time.up === undefined && inBlind()) { // in Blind, "Cue 3" opens cue 3
+          openBlind(cue.number);
+          return `Cue ${cue.number} open in Blind`;
+        }
+        if (label === undefined && time.up === undefined) { // just "Cue 3": pick it in the header
+          $("target").value = cue.number;
+          paintTiming();
+          return `Cue ${cue.number} picked`;
+        }
+        socket.emit("cueSettings", { number: cue.number, label, ...time });
+        return `Cue ${cue.number} changed`;
+      }
+      if (w === "DMX") {
+        const k = t.indexOf("At"), addr = Number(num(1)), lv = levelOf(t[k + 1]);
+        if (k < 0 || lv === null || addr < 1 || addr > 512) throw new Error("DMX 1-512 At a level");
+        sendLevels({ [addr]: lv });
+        return `DMX ${addr} at ${pct(lv)}%`;
+      }
+      if (w === "Release") { // every hand-set level goes back to the cue
+        socket.emit("release", { channels: null, time: timing().up ?? (isNum(t[1]) ? Number(t[1]) : undefined) });
+        return "Released";
+      }
+
+      // Everything else is "<channels> <verb> ...". No channels typed = use the current selection.
+      const v = t.findIndex((x) => VERBS.includes(x));
+      const sel = v < 0 ? t : t.slice(0, v), rest = v < 0 ? [] : t.slice(v);
+      if (sel.length) selected = pick(sel, sel[0] === "+" || sel[0] === "-" ? selected : new Set());
+      if (!rest.length) return `${selected.size} selected`;
+
+      const verb = rest[0];
+      if (verb === "Label") { // Group 2 Label x  ·  3 Label Spot SR
+        const text = labelText() ?? "";
+        if (sel[0] === "Group" && groups[sel[1]]) { groups[sel[1]].label = text; socket.emit("saveGroups", groups); return `Group ${sel[1]} renamed`; }
+        if (selected.size !== 1) throw new Error("Rename one channel at a time");
+        patch[[...selected][0]].name = text;
+        socket.emit("savePatch", patch);
+        return "Channel renamed";
+      }
+      if (!selected.size) throw new Error("Select channels first");
+      switch (verb) {
+        case "Full": setEach(() => ({ lv: 255 })); return "";
+        case "Out": setEach(() => ({ lv: 0 })); return "";
+        case "At": {
+          const a = rest[1];
+          if (a === "+" || a === "-") { nudge((a === "+" ? 1 : -1) * Number(num(v + 2))); return ""; }
+          const lv = levelOf(a);
+          if (lv === null) throw new Error("At needs a level: 0-100, Full or Out");
+          setEach(() => ({ lv }));
+          return "";
+        }
+        case "Release": {
+          socket.emit("release", { channels: [...selected].flatMap(dmxOf), time: timing().up ?? (isNum(rest[1]) ? Number(rest[1]) : undefined) });
+          return "Released";
+        }
+        case "Solo": {
+          const others = new Set(patch.map((_, i) => i).filter((i) => !selected.has(i) && level(i) > 0)); // level() reads the Blind look in Blind
+          setEach(() => ({ lv: 0 }), others);
+          return "Solo";
+        }
+        case "Copy": {
+          const src = Math.min(...selected), targets = pick(rest.slice(1));
+          if (!targets.size) throw new Error("Copy onto which channels?");
+          const lv = level(src), c = color(src);
+          setEach((i) => ({ lv, c: hasColor(patch[i]) ? c || undefined : undefined }), targets);
+          selected = targets;
+          return `Copied ${src + 1}`;
+        }
+        case "Palette": {
+          const n = num(v + 1), cp = palettes[n];
+          if (!cp) throw new Error(`No palette ${n}`);
+          setEach((i) => (cp.colors[i + 1] ? { c: cp.colors[i + 1] } : null));
+          return `Palette ${n}${cp.label ? " " + cp.label : ""}`;
+        }
+      }
+      throw new Error("Didn't understand that. Press ? for examples");
+
+      // Record [Cue n | Group n | Palette n] [Label x] [Time up / down]
+      function record(rt, onlySelected) {
+        const num = (k) => {
+          if (!isNum(rt[k]) || rt[k] === ".") throw new Error(`Needs a number after ${rt[k - 1]}`);
+          return rt[k];
+        };
+        const label = labelText();
+        if (rt[1] === "Group") {
+          const n = num(2);
+          if (!selected.size) throw new Error("Select channels first");
+          groups[n] = { label: label ?? groups[n]?.label ?? "", channels: [...selected].sort((a, b) => a - b).map((i) => i + 1) };
+          socket.emit("saveGroups", groups);
+          return `Saved group ${n}`;
+        }
+        if (rt[1] === "Palette") {
+          const n = num(2), colors = {};
+          for (const i of selected) if (hasColor(patch[i])) colors[i + 1] = color(i);
+          if (!Object.keys(colors).length) throw new Error("Select some colour fixtures first");
+          palettes[n] = { label: label ?? palettes[n]?.label ?? "", colors };
+          socket.emit("savePalettes", palettes);
+          return `Saved palette ${n}`;
+        }
+        const number = rt[1] === "Cue" ? num(2) : isNum(rt[1]) ? num(1) : undefined;
+        if (number !== undefined) {
+          const clash = cues.find((c) => sameNumber(c.number, number) && c.type !== "light");
+          if (clash) throw new Error(`Cue ${number} is a ${clash.type} cue`);
+        }
+        if (onlySelected && !selected.size) throw new Error("Select channels first");
+        const only = onlySelected ? [...selected].flatMap(dmxOf) : undefined;
+        if (inBlind() && number === undefined) throw new Error("In Blind, say which cue to copy this look into: R Q 8 Enter");
+        const from = inBlind() ? blindNo : undefined; // in Blind, copy the open cue's look rather than the stage
+        socket.emit("record", { number, label, only, from, fromIndex: inBlind() ? blindIndex() : undefined, ...timing() }, (msg) => hint(msg));
+        return "Recording…";
+      }
+    }
+
+    // ] and [ : selected channels 10% brighter / dimmer straight away
+    function nudge(percent) {
+      if (!selected.size) return hint("Select channels first", true);
+      setEach((i) => ({ lv: clampLv(level(i) + percent * 2.55) }));
+      paintAll();
+    }
+
+    // ← / →: step the selection through the patched channels
+    function step(dir) {
+      if (!patch.length) return;
+      const cur = [...selected];
+      const i = cur.length ? (dir > 0 ? Math.max(...cur) : Math.min(...cur)) + dir : 0;
+      selected = new Set([(i + patch.length) % patch.length]);
+      paintAll();
+    }
+
+    // The keyboard. Letters add words, a few keys act straight away.
+    const LETTERS = { a: "At", t: "Thru", f: "Full", o: "Out", q: "Cue", g: "Group", p: "Palette", r: "Record", u: "Update", x: "Release",
+      s: "Time", l: "Label", c: "Copy", j: "Jump", d: "Delete", m: "DMX" };
+    const RUNS_AT_ONCE = ["Full", "Out", "Solo"]; // after a channel selection, these finish the command themselves
+    const STARTERS = ["Delete", "DMX", "Jump"];     // only make sense at the start of a line
+    function keyAction(e) {
+      const { key: k, code, ctrlKey: ctrl, altKey: alt, shiftKey: shift } = e;
+      if (code === "Space") return shift ? () => socket.emit("back") : () => socket.emit("go");
+      if (ctrl && code === "KeyZ") return () => socket.emit("undo", null, (msg) => hint(msg));
+      if (ctrl && code === "KeyA") return () => {
+        selected = new Set(patch.map((_, i) => i).filter((i) => level(i) > 0));
+        hint(`${selected.size} channels on`);
+        paintAll();
+      };
+      if (ctrl || alt) return null;
+      if (k === "?") return toggleKeys;
+      if (/^[0-9.]$/.test(k)) return () => postDigit(k);
+      if (k === "+" || k === "=" || code === "NumpadAdd") return () => post("+");
+      if (k === "-" || code === "NumpadSubtract") return () => post("-");
+      if (k === "]") return () => nudge(10);
+      if (k === "[") return () => nudge(-10);
+      if (k === "/") return () => post("/");
+      if (k === "@") return () => post("At");
+      if (k === "Enter") return run;
+      if (k === "Escape") return () => {
+        if (!line.length && (checking || checkElsewhere)) return endCheck(); // Esc on an empty line ends a light check
+        line = []; confirmDelete = false; paintLine(); hint("");
+      };
+      if (k === "Backspace") return backspace;
+      if (k === "Delete") return () => { if (!line.length) post("Delete"); };
+      if (k === "PageUp" || k === "PageDown") return () => (inBlind() ? stepBlind(k === "PageUp" ? -1 : 1) : hint("Page Up / Down step through cues in Blind (B)"));
+      if (k.toLowerCase() === "b" && !shift) return () => {
+        if (line.length) return hint("Finish or clear the line first (Esc)", true);
+        inBlind() ? closeBlind() : openBlind();
+      };
+      if (k.toLowerCase() === "k" && !shift) return () => {
+        if (!inBlind()) return hint("K is for Blind: only this cue changes", true);
+        $("cueOnly").checked = !$("cueOnly").checked;
+        hint($("cueOnly").checked ? "Only this cue: later cues stay as they are" : "Changes carry on into later cues");
+      };
+      if (k === "ArrowUp") return () => { line = lastLine.slice(); confirmDelete = false; paintLine(); };
+      if (k === "ArrowLeft") return () => step(-1);
+      if (k === "ArrowRight") return () => step(1);
+      if (shift && code === "KeyO") return () => {
+        if (line.length && !["Ch", "Group", "+", "-"].includes(line[0])) return hint("Solo goes after a channel selection", true);
+        post("Solo");
+        run();
+      };
+      if (shift && code === "KeyL") return () => (checking || checkElsewhere ? endCheck() : startCheck());
+      const word = LETTERS[k.toLowerCase()];
+      if (!word) return null;
+      return () => {
+        if (STARTERS.includes(word) && line.length) return hint(`${word} goes at the start of a line`, true);
+        // "1 F" runs at once; "J Q O" (jump to the top) still waits for Enter
+        const onSelection = !line.length || ["Ch", "Group", "+", "-"].includes(line[0]);
+        post(word);
+        if (RUNS_AT_ONCE.includes(word) && onSelection) run();
+      };
+    }
+    function toggleKeys() { $("keys").classList.toggle("on"); }
+    document.addEventListener("keydown", (e) => {
+      const el = e.target;
+      if (el.matches("input:not([type=range]):not([type=color]), textarea")) return; // typing in a field
+      if (el.matches("select") && ["ArrowUp", "ArrowDown"].includes(e.key)) return; // choosing from a list
+      if (e.metaKey) return; // Cmd shortcuts belong to the app (views, copy, quit)
+      if ($("keys").classList.contains("on") && (e.key === "Escape" || e.key === "?")) { e.preventDefault(); return toggleKeys(); }
+      if (typingLabel() && e.key.length === 1 && !e.ctrlKey && !e.altKey) { e.preventDefault(); return typeText(e.key); }
+      const act = keyAction(e);
+      if (!act) return;
+      e.preventDefault();
+      if (e.repeat && !["Backspace", "ArrowLeft", "ArrowRight", "[", "]"].includes(e.key)) return; // a held key acts once
+      act();
+    });
+    for (const el of document.querySelectorAll("header select, header button")) el.addEventListener("change", () => el.blur());
+    $("goBtn").onclick = (e) => { socket.emit("go"); e.target.blur(); };
+    $("backBtn").onclick = (e) => { socket.emit("back"); e.target.blur(); };
+
+    // ---- groups tab: groups and colour palettes as buttons
+    function buildGroupButtons() {
+      const gBox = $("groupBtns"), cBox = $("cpBtns");
+      gBox.innerHTML = cBox.innerHTML = "";
+      for (const [n, g] of Object.entries(groups)) {
+        const b = document.createElement("button");
+        b.innerHTML = `<b>${n}</b><span></span>`;
+        b.dataset.group = n;
+        b.querySelector("span").textContent = g.label || g.channels.join(", ");
+        b.onclick = (e) => { selected = pick(["Group", n], e.shiftKey ? selected : new Set()); paintAll(); e.target.blur(); };
+        gBox.appendChild(b);
+      }
+      for (const [n, cp] of Object.entries(palettes)) {
+        const b = document.createElement("button");
+        const dots = [...new Set(Object.values(cp.colors).map(hex))].slice(0, 6).map((h) => `<i style="background:${h}"></i>`).join("");
+        b.innerHTML = `<b>${n}</b><div class="dots">${dots}</div><span></span>`;
+        b.querySelector("span").textContent = cp.label;
+        b.onclick = (e) => {
+          try { hint(execute(["Palette", n])); } catch (err) { hint(err.message, true); }
+          e.target.blur();
+        };
+        cBox.appendChild(b);
+      }
+      if (!gBox.children.length) gBox.textContent = "No groups yet";
+      if (!cBox.children.length) cBox.textContent = "No colour palettes yet";
+      paintGroupButtons();
+    }
+    function paintGroupButtons() { // light up the groups whose channels are all selected
+      for (const b of document.querySelectorAll("[data-group]")) {
+        const g = groups[b.dataset.group];
+        if (g) b.classList.toggle("sel", g.channels.length > 0 && g.channels.every((c) => selected.has(c - 1)));
+      }
+    }
+
+    // ---- playback list: one cue before the one on stage, it, and the next few
+    let progress = null; // { number, fraction, paused } from the server
+    const TYPE_NAMES = { light: "Lights", sound: "Sound", mix: "Mix", midi: "MIDI" };
+    function buildPlayback() {
+      const body = $("pbRows");
+      body.innerHTML = "";
+      const from = Math.max(0, currentCue - 1), to = Math.min(cues.length, currentCue + 6);
+      for (let i = from; i < to; i++) {
+        const c = cues[i], light = c.type === "light", tr = document.createElement("tr");
+        tr.className = (i === currentCue ? "live" : i === currentCue + 1 ? "next" : "") + (light ? "" : " other");
+        tr.innerHTML = `<td class="where">${i === currentCue + 1 ? "NEXT" : ""}</td><td></td><td class="label"></td><td>${TYPE_NAMES[c.type] || c.type}</td>
+          <td>${light ? c.fade ?? 0 : ""}</td><td>${light ? c.downFade ?? c.fade ?? 0 : ""}</td><td>${c.autoFollow ? "⤵ " + (c.wait || 0) + "s" : ""}</td><td></td>`;
+        tr.children[1].textContent = c.number;
+        tr.children[2].textContent = c.label;
+        tr.dataset.number = c.number;
+        tr.title = "Click: pick it in the header. Double-click: make it the next GO";
+        tr.onclick = () => { if (light) { $("target").value = c.number; paintTiming(); } };
+        tr.ondblclick = () => socket.emit("setStandby", i);
+        body.appendChild(tr);
+      }
+      if (!cues.length) body.innerHTML = `<tr><td></td><td colspan="7">No cues yet. R Enter records the stage as cue 1.</td></tr>`;
+      paintProgress();
+    }
+    function paintProgress() { // the live row fills up as its fade runs
+      const live = $("pbRows").querySelector("tr.live");
+      if (!live) return;
+      const p = progress && sameNumber(progress.number, live.dataset.number) ? progress : null;
+      const f = p ? p.fraction : 1, cell = live.lastElementChild;
+      live.style.background = f < 1 ? `linear-gradient(90deg, rgba(227,162,26,.22) ${f * 100}%, transparent ${f * 100}%)` : "";
+      cell.textContent = f >= 1 ? "" : p.paused ? "paused" : Math.round(f * 100) + "%";
+      cell.className = p && p.paused ? "paused" : "";
+    }
+    socket.on("progress", (p) => { progress = p; paintProgress(); });
+
+    // ---- faders outside the cue list (house lights, work lights, preshow)
+    let faders = [], faderPos = [];
+    function buildFaders() {
+      const box = $("faderList");
+      box.innerHTML = "";
+      faders.forEach((f, k) => {
+        const row = document.createElement("div");
+        row.className = "frow";
+        row.innerHTML = `<input class="fname"><button title="Store the selected channels' stage levels in this fader">Set</button><button title="Remove this fader">✕</button>
+          <input type="range" min="0" max="100" value="0"><span class="fval"></span>`;
+        const [name, set, del, range] = row.querySelectorAll("input, button");
+        name.value = f.name;
+        name.onchange = () => socket.emit("saveFader", { index: k, name: name.value });
+        set.onclick = (e) => { e.target.blur(); setFader(k); };
+        del.onclick = (e) => { e.target.blur(); if (confirm(`Remove the fader "${f.name}"?`)) socket.emit("deleteFader", k); };
+        range.oninput = () => socket.emit("faderPos", { index: k, pos: range.value / 100 });
+        range.onchange = () => range.blur(); // let go of it, so the keyboard goes back to the command line
+        box.appendChild(row);
+      });
+      paintFaders();
+    }
+    function paintFaders() {
+      $("faderList").querySelectorAll(".frow").forEach((row, k) => {
+        const pos = faderPos[k] || 0, range = row.querySelector("input[type=range]");
+        if (document.activeElement !== range) range.value = Math.round(pos * 100);
+        row.querySelector(".fval").textContent = Math.round(pos * 100) + "%";
+      });
+    }
+    // Set: the selected channels' levels on stage go into the fader
+    function setFader(k) {
+      if (inBlind()) return hint("Faders are set from the stage: press B for Live first", true);
+      if (!selected.size) return hint("Select the channels for this fader first", true);
+      const levels = {};
+      for (const i of selected) for (const ch of dmxOf(i)) if (dmx[ch - 1] > 0) levels[ch] = dmx[ch - 1];
+      if (!Object.keys(levels).length) return hint("The selected channels are all out. Bring them up first", true);
+      socket.emit("saveFader", { index: k, levels });
+      hint(`${faders[k].name}: ${selected.size} channel${selected.size > 1 ? "s" : ""} stored`);
+    }
+    // The highest level any fader gives a DMX channel right now
+    function faderLevel(ch) {
+      let best = 0;
+      faders.forEach((f, k) => {
+        const pos = faderPos[k] || 0;
+        if (pos > 0 && f.levels[ch]) best = Math.max(best, Math.round(f.levels[ch] * pos));
+      });
+      return best;
+    }
+    $("addFader").onclick = (e) => {
+      e.target.blur();
+      const name = ["House lights", "Work lights", "Preshow"][faders.length] ?? `Fader ${faders.length + 1}`;
+      socket.emit("saveFader", { index: faders.length, name });
+    };
+    socket.on("faderPos", (p) => { faderPos = p || []; paintFaders(); paintGrid(); });
+
+    // ---- light check: the selected lights at full white and everything else dark. It only changes what is
+    // sent to the lights; cues, levels and faders are untouched and come back as soon as it ends.
+    let checking = false, checkKey = "", checkElsewhere = false;
+    function startCheck() {
+      if (inBlind()) return hint("Light check works in Live (press B)", true);
+      if (!patch.length) return hint("Patch some fixtures first", true);
+      if (!selected.size) selected = new Set([0]);
+      checking = true;
+      checkKey = "";
+      paintAll();
+    }
+    function endCheck() {
+      checking = false;
+      socket.emit("check", null);
+      paintCheck();
+    }
+    function sendCheck() { // called on every repaint; only talks to the server when the selection changed
+      if (!checking) return;
+      const key = [...selected].sort((a, b) => a - b).join(",");
+      if (key === checkKey) return;
+      checkKey = key;
+      const levels = {};
+      for (const i of selected) Object.assign(levels, channelsFor(i, 255, { r: 255, g: 255, b: 255 }));
+      socket.emit("check", levels);
+    }
+    function paintCheck() {
+      const on = checking || checkElsewhere;
+      document.body.classList.toggle("checking", on);
+      $("checkBtn").classList.toggle("checkon", on);
+      $("checkWho").textContent = checking
+        ? [...selected].sort((a, b) => a - b).map((i) => `${i + 1} ${patch[i].name}`).join(", ") || "nothing"
+        : "the lights picked on another screen";
+    }
+    $("checkBtn").onclick = (e) => { e.target.blur(); checking || checkElsewhere ? endCheck() : startCheck(); };
+    $("checkEnd").onclick = (e) => { e.target.blur(); endCheck(); };
+    socket.on("check", (c) => {
+      checkElsewhere = !!c && !checking;
+      if (!c) checking = false;
+      paintCheck();
+    });
 
     // ---- header: cues, master, blackout, tabs
-    $("load").onclick = () => socket.emit("loadCue", Number($("target").value));
-    $("record").onclick = () => socket.emit("recordCue", { index: Number($("target").value) });
+    $("load").onclick = () => { if (targetIndex() >= 0) socket.emit("loadCue", targetIndex()); };
+    $("record").onclick = () => { if (targetIndex() >= 0) socket.emit("recordCue", { index: targetIndex() }); };
     $("recordNew").onclick = () => socket.emit("recordCue", { index: -1, label: $("newLabel").value });
     $("clear").onclick = () => socket.emit("clearAll");
     $("master").oninput = (e) => socket.emit("setMaster", Number(e.target.value));
@@ -453,22 +1265,30 @@
       document.querySelectorAll(".tabs button, .tab").forEach((el) => el.classList.remove("on"));
       b.classList.add("on");
       $(b.dataset.tab).classList.add("on");
+      b.blur();
     };
 
     // ---- the server is the source of truth
-    function paintAll() { paintStage(); paintLive(); paintFaders(); paintPanel(); }
+    function paintAll() { paintStage(); paintLive(); paintGrid(); paintPanel(); paintGroupButtons(); sendCheck(); paintCheck(); }
 
     socket.on("dmx", (d) => { dmx = d; paintAll(); });
+    socket.on("marks", (m) => { manualSet = new Set(m.manual); moves = m.moves; staleSet = new Set(m.stale || []); paintGrid(); });
 
     socket.on("state", (state) => {
       cues = state.cues;
+      currentCue = state.currentCue;
       patch = state.patch || [];
+      groups = state.groups || {};
+      palettes = state.palettes || {};
+      faders = state.faders || [];
+      buildFaders();
+      buildGroupButtons();
       master = state.master ?? 255;
       selected = new Set([...selected].filter((i) => i < patch.length));
 
       const sel = $("target"), keep = sel.value;
       sel.innerHTML = "";
-      cues.forEach((cue, i) => { if (cue.type === "light") sel.add(new Option(cue.number + "  " + cue.label, i)); });
+      for (const cue of cues) if (cue.type === "light") sel.add(new Option(cue.number + "  " + cue.label, cue.number));
       if (keep) sel.value = keep;
 
       $("master").value = master;
@@ -477,13 +1297,15 @@
       $("blackout").textContent = master === 0 ? "Restore" : "Blackout";
 
       buildStage();
+      buildGrid();
       buildLive();
       buildPatch();
       paintTiming();
-      paintAll();
+      buildPlayback();
+      refreshBlind(); // the open cue's look may have changed; this also repaints everything
     });
 
-    buildFaders();
+    setInterval(() => $("clock").textContent = new Date().toLocaleTimeString(), 1000);
   </script>
 </body>
 </html>

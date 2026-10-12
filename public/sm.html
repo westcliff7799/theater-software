@@ -2,6 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Stage Manager</title>
     <link rel="stylesheet" href="/style.css" />
     <style>
@@ -20,6 +21,11 @@
       .now .live { background: var(--live); }
       .now .live b { color: #7fe89a; }
       .now .next { background: #2a2410; }
+
+      /* live script between the cue list and the inspector (livescript.js) */
+      main { grid-template-columns: 1fr 320px; }               /* Edit: cues · Selected cue */
+      body.mode-show main { grid-template-columns: 1fr 440px; } /* Show: cues · live script */
+      .livescript { border-top: none; border-bottom: none; }
       .now .next b { color: var(--standby); }
 
       .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; text-transform: uppercase; letter-spacing: 1px; }
@@ -33,12 +39,41 @@
       .toolbar { display: flex; gap: 6px; padding: 10px 12px; border-top: 1px solid var(--line); background: var(--panel); }
       .toolbar .gap { flex: 1; }
 
+      @media (max-width: 760px) {
+        header { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+        header h1 { font-size: 16px; }
+        header .smfaders, header label, header #reset { display: none; }
+        header .clock { font-size: 18px; min-width: 0; }
+        header #stop, header #go { display: none; }     /* they live in the bar at the bottom instead */
+        main, body.mode-show main { grid-template-columns: 1fr; }
+        aside.inspector, #liveScript { display: none !important; }
+        .now > div { padding: 10px 12px; }
+        .now b { font-size: 18px; }
+        th:nth-child(n+4), td:nth-child(n+4) { display: none; } /* cue, label, type fit a phone; the rest doesn't */
+        td, th { padding: 12px 10px; }
+        .toolbar { padding: 8px; gap: 8px; }
+        .toolbar button { flex: 1; }
+        .toolbar .gap { display: none; }
+        .list { padding-bottom: 96px; }                  /* room for the bar */
+        .gobar { position: fixed; left: 0; right: 0; bottom: 0; display: flex; gap: 10px; padding: 12px; padding-bottom: calc(12px + env(safe-area-inset-bottom)); background: #0c0c0c; border-top: 1px solid var(--line); z-index: 20; }
+        .gobar button { flex: 1; font-size: 22px; font-weight: bold; padding: 18px 0; }
+        .gobar .go { flex: 2; background: var(--go); border-color: var(--go); font-size: 30px; }
+      }
+      .gobar { display: none; }
+      @media (max-width: 760px) { .gobar { display: flex; } }
+
       .inspector textarea { width: 100%; min-height: 70px; padding: 6px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 4px; font: inherit; font-size: 14px; resize: vertical; }
       .inspector .check { display: flex; align-items: center; gap: 8px; margin-top: 16px; color: var(--text); font-size: 14px; }
       .inspector .check input { width: auto; }
       .inspector .hint { color: var(--dim); font-size: 12px; margin-top: 20px; line-height: 1.6; }
       .inspector .hint kbd { background: #111; border: 1px solid var(--line); border-radius: 3px; padding: 1px 5px; font-family: Menlo, monospace; }
       .inspector p.none { color: var(--dim); }
+
+      /* house / work light faders, shared with the lights page */
+      .smfaders { display: flex; gap: 14px; align-items: center; }
+      .smfaders label { display: flex; flex-direction: column; gap: 2px; font-size: 11px; color: var(--dim); }
+      .smfaders input { width: 110px; }
+      .smfaders b { color: #f5a623; font-weight: normal; font-family: Menlo, monospace; }
     </style>
   </head>
   <body>
@@ -46,11 +81,14 @@
     <header>
       <h1>Stage Manager</h1>
       <span class="clock" id="clock">00:00</span>
+      <span class="smfaders" id="smFaders"></span>
       <label><input type="checkbox" id="playHere" checked /> Play audio here</label>
       <button id="reset">Reset to top</button>
       <button id="stop">STOP</button>
       <button id="go" class="go">GO</button>
     </header>
+
+    <div class="gobar"><button id="stopMobile">STOP</button><button id="goMobile" class="go">GO</button></div>
 
     <main>
       <div class="list">
@@ -69,17 +107,19 @@
         </div>
 
         <div class="toolbar">
-          <button id="add">+ Add cue</button>
-          <button id="delete">Delete</button>
-          <button id="up" title="⌘↑">▲</button>
-          <button id="down" title="⌘↓">▼</button>
+          <button id="add" data-edit-only>+ Add cue</button>
+          <button id="delete" data-edit-only>Delete</button>
+          <button id="up" title="⌘↑" data-edit-only>▲</button>
+          <button id="down" title="⌘↓" data-edit-only>▼</button>
           <span class="gap"></span>
           <button id="load" title="Enter">Load as standby</button>
           <button id="fire">Fire selected</button>
         </div>
       </div>
 
-      <aside class="inspector">
+      <section id="liveScript" data-show-only></section>
+
+      <aside class="inspector" data-edit-only>
         <h3>Selected cue</h3>
         <p class="none" id="noneSelected">Click a cue to edit it.</p>
         <div id="fields" hidden>
@@ -123,12 +163,15 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="/audio-player.js"></script>
+    <script src="/livescript.js"></script>
     <script>
       const socket = io();
       const $ = (id) => document.getElementById(id);
       let cues = [], currentCue = -1, selected = -1, showStart = null;
 
       // ---- transport
+      $("goMobile").onclick = () => $("go").click();
+      $("stopMobile").onclick = () => $("stop").click();
       $("go").onclick = (e) => { socket.emit("go"); e.target.blur(); };
       $("stop").onclick = () => socket.emit("stop");
       $("reset").onclick = () => socket.emit("reset");
@@ -189,7 +232,7 @@
           tr.className = "cue" + (i === currentCue ? " live" : "") + (i === currentCue + 1 ? " standby" : "") + (i === selected ? " selected" : "");
           tr.innerHTML = `<td>${cue.number}</td><td>${cue.label}</td>
             <td><span class="badge ${cue.type}">${cue.type}</span></td>
-            <td>${describe(cue)}</td><td>${cue.type === "light" ? cue.fade ?? 0 : ""}</td>
+            <td>${describe(cue)}</td><td>${cue.type === "light" ? (cue.fade ?? 0) + (cue.downFade !== undefined ? " / " + cue.downFade : "") : ""}</td>
             <td class="follow">${cue.autoFollow ? "⤵ " + (cue.wait || 0) + "s" : ""}</td>
             <td class="notes">${cue.notes || ""}</td>`;
           tr.onclick = () => select(i);
@@ -233,7 +276,32 @@
         showFields(cue.type);
       }
 
-      // ---- editing: every change in the inspector is saved straight away
+      // ---- editing: every change in the inspector is saved straight away.
+      // Only the changed field is written, so changes made on other pages meanwhile (e.g. lights in Blind) survive.
+      const FIELDS = {
+        "f-number": (c, el) => (c.number = el.value),
+        "f-label": (c, el) => (c.label = el.value),
+        "f-fade": (c, el) => { c.fade = Number(el.value) || 0; delete c.downFade; }, // one fade here: up and down the same
+        "f-levels": (c, el) => (c.levels = parseLevels(el.value)),
+        "f-file": (c, el) => (c.file = el.value),
+        "f-volume": (c, el) => (c.volume = Number(el.value) || 1),
+        "f-fadein": (c, el) => (c.fadeIn = Number(el.value) || 0),
+        "f-fadeout": (c, el) => (c.fadeOut = el.value === "" ? 1 : Number(el.value) || 0),
+        "f-loop": (c, el) => (c.loop = el.checked),
+        "f-bytes": (c, el) => (c.bytes = el.value.split(",").map((s) => Number(s.trim())).filter((n) => !Number.isNaN(n))),
+        "f-follow": (c, el) => (c.autoFollow = el.checked),
+        "f-wait": (c, el) => (c.wait = Number(el.value) || 0),
+        "f-notes": (c, el) => (c.notes = el.value),
+        "f-scene": (c, el) => (c.scene = Number(el.value) || 0),
+      };
+      function changeField(el) {
+        if (selected < 0) return;
+        if (el.id === "f-type") return readInspector(); // a new type starts from the inspector's fields
+        const cue = { ...cues[selected] };
+        FIELDS[el.id]?.(cue, el);
+        cues[selected] = cue;
+        socket.emit("saveCues", cues);
+      }
       function readInspector() {
         if (selected < 0) return;
         const cue = {
@@ -244,7 +312,13 @@
           wait: Number($("f-wait").value) || 0,
           notes: $("f-notes").value,
         };
-        if (cue.type === "light") { cue.fade = Number($("f-fade").value) || 0; cue.levels = parseLevels($("f-levels").value); }
+        if (cue.type === "light") {
+          const old = cues[selected];
+          cue.fade = Number($("f-fade").value) || 0;
+          cue.levels = parseLevels($("f-levels").value);
+          // a separate fade-down time (set on the lights page) stays unless the fade itself was changed here
+          if (old.downFade !== undefined && cue.fade === old.fade) cue.downFade = old.downFade;
+        }
         if (cue.type === "sound") {
           cue.file = $("f-file").value;
           cue.volume = Number($("f-volume").value) || 1;
@@ -261,7 +335,7 @@
         showFields(cue.type);
         socket.emit("saveCues", cues);
       }
-      for (const el of document.querySelectorAll("#fields input, #fields select, #fields textarea")) el.onchange = readInspector;
+      for (const el of document.querySelectorAll("#fields input, #fields select, #fields textarea")) el.onchange = () => changeField(el);
 
       $("add").onclick = () => {
         const at = selected >= 0 ? selected + 1 : cues.length; // new cue goes after the selected one
@@ -287,6 +361,37 @@
       $("up").onclick = () => move(-1);
       $("down").onclick = () => move(1);
 
+      // ---- house / work light faders (made on the lights page; the stage manager often runs the house lights)
+      let faders = [], faderPos = [], faderKey = "";
+      function buildFaders() {
+        const key = faders.map((f) => f.name).join("|");
+        if (key === faderKey) return paintFaders(); // same faders: don't rebuild under the user's mouse
+        faderKey = key;
+        const box = $("smFaders");
+        box.innerHTML = "";
+        faders.forEach((f, k) => {
+          const label = document.createElement("label");
+          label.innerHTML = `<span></span><input type="range" min="0" max="100" value="0">`;
+          label.querySelector("span").textContent = f.name;
+          const range = label.querySelector("input");
+          range.oninput = () => socket.emit("faderPos", { index: k, pos: range.value / 100 });
+          range.onchange = () => range.blur(); // Space goes back to being GO
+          box.appendChild(label);
+        });
+        paintFaders();
+      }
+      function paintFaders() {
+        $("smFaders").querySelectorAll("label").forEach((label, k) => {
+          const range = label.querySelector("input"), pct = Math.round((faderPos[k] || 0) * 100);
+          if (document.activeElement !== range) range.value = pct;
+          label.querySelector("span").textContent = `${faders[k].name} ${pct}%`;
+        });
+      }
+      socket.on("faderPos", (p) => { faderPos = p || []; paintFaders(); });
+
+      installLiveScript($("liveScript"), socket);
+
+
       // ---- the server is the source of truth: whatever it sends, we draw
       socket.on("state", (state) => {
         const sel = $("f-file"), keep = sel.value;
@@ -294,12 +399,17 @@
         state.audioFiles.forEach((f) => sel.add(new Option(f, f)));
         if (keep) sel.value = keep;
 
+        // Other pages can add or remove cues, so find the picked cue again by its number
+        const was = cues[selected];
         cues = state.cues;
         currentCue = state.currentCue;
+        faders = state.faders || [];
+        buildFaders();
         if (currentCue >= 0 && !showStart) showStart = Date.now();
         if (currentCue < 0) { showStart = null; $("clock").textContent = "00:00"; }
-        if (selected >= cues.length) selected = -1;
+        selected = was ? cues.findIndex((c) => c.type === was.type && c.number === was.number) : -1;
         render();
+        if (!$("fields").contains(document.activeElement)) fillInspector(); // don't overwrite a field mid-typing
       });
     </script>
   </body>

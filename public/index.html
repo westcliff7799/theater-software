@@ -2,11 +2,14 @@
 <html>
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Show Control</title>
     <link rel="stylesheet" href="/style.css" />
     <style>
-      main { display: block; padding: 32px; }
-      .views { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; max-width: 1000px; }
+      main { display: grid; grid-template-columns: 1fr; gap: 24px; padding: 32px; }
+      body.mode-show main { grid-template-columns: 1fr 420px; } /* Show: the live script beside the tiles */
+      .views { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; max-width: 1000px; align-content: start; }
+      #liveScript { border-radius: 10px; overflow: hidden; min-height: 0; }
       a.view {
         display: block; padding: 24px; background: var(--panel); border: 1px solid var(--line);
         border-radius: 10px; color: var(--text); text-decoration: none;
@@ -14,7 +17,15 @@
       a.view:hover { border-color: var(--accent); }
       a.view h2 { margin: 0 0 6px; font-size: 20px; }
       a.view p { margin: 0; color: var(--dim); font-size: 14px; }
-      .status { color: var(--dim); margin-top: 24px; }
+      .status { color: var(--dim); margin-top: 24px; grid-column: 1 / -1; }
+      @media (max-width: 760px) {
+        main, body.mode-show main { grid-template-columns: 1fr; padding: 16px; gap: 16px; align-content: start; }
+        .views { grid-template-columns: 1fr 1fr; gap: 10px; }
+        a.view { padding: 16px; }
+        a.view h2 { font-size: 17px; }
+        a.view p { display: none; }
+        #liveScript { height: 60vh; }
+      }
     </style>
   </head>
   <body>
@@ -24,16 +35,20 @@
     <main>
       <div class="views">
         <a class="view" href="/sm.html"><h2>Stage Manager</h2><p>Cue list, GO and STOP, edit cues</p></a>
-        <a class="view" href="/lights.html"><h2>Lights</h2><p>24 faders, record looks into cues</p></a>
+        <a class="view" href="/lights.html"><h2>Lights</h2><p>Lighting console: type commands, record cues, Blind, faders, light check</p></a>
         <a class="view" href="/sound.html"><h2>Sound</h2><p>Audio files, playback, previews</p></a>
         <a class="view" href="/actor.html"><h2>Script</h2><p>Follow the script with the live cue marked</p></a>
+        <a class="view" href="/follow.html"><h2>Follow</h2><p>Listen to the stage mic and move the script line along</p></a>
       </div>
+      <section id="liveScript" data-show-only></section>
       <p class="status" id="status">Connecting…</p>
     </main>
 
     <script src="/socket.io/socket.io.js"></script>
+    <script src="/livescript.js"></script>
     <script>
       const socket = io();
+      installLiveScript(document.getElementById("liveScript"), socket);
       socket.on("state", ({ currentCue, cues }) => {
         const cue = cues[currentCue];
         document.getElementById("status").textContent = cue

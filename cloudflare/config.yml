@@ -1,0 +1,10 @@
+# Cloudflare Tunnel: makes the show computer reachable at show.vortigernindustries.com
+# without opening any ports. Run with:  npm run tunnel   (after the one-time setup in cloudflare/README.md)
+tunnel: theater
+credentials-file: /Users/jacemougne/.cloudflared/theater.json
+protocol: http2   # the venue / home network blocks UDP, which the default (quic) needs
+
+ingress:
+  - hostname: show.vortigernindustries.com
+    service: http://localhost:3000
+  - service: http_status:404

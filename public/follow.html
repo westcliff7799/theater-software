@@ -1,0 +1,623 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <title>Follow</title>
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      header { justify-content: space-between; }
+      header .tag { font-family: Menlo, monospace; font-size: 12px; letter-spacing: 4px; color: var(--dim); }
+      main { display: grid; grid-template-columns: 340px 1fr; overflow: hidden; }
+      .side { background: var(--panel); border-right: 1px solid var(--line); padding: 16px; overflow: auto; }
+      .side h2 { font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); margin: 18px 0 8px; }
+      .side h2:first-child { margin-top: 0; }
+      .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+      button.listen { font-size: 18px; padding: 12px 20px; }
+      button.listen.on { background: var(--go); border-color: var(--go); }
+      .meter { height: 10px; background: #111; border: 1px solid var(--line); border-radius: 5px; overflow: hidden; margin-top: 8px; }
+      .meter div { height: 100%; width: 0; background: var(--accent); transition: width 60ms linear; }
+      .device { font-size: 13px; color: var(--dim); margin-top: 6px; }
+      select { width: 100%; margin-top: 10px; padding: 6px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 4px; font-size: 13px; }
+      .warn { background: #3a2a10; border: 1px solid #8c6d10; color: var(--standby); padding: 10px; border-radius: 6px; font-size: 13px; margin-top: 12px; }
+      .heard { font-family: Menlo, monospace; font-size: 13px; color: #bbb; min-height: 60px; white-space: pre-wrap; }
+      .heard .interim { color: var(--dim); }
+      label.slider { display: block; color: var(--dim); font-size: 12px; margin-top: 8px; }
+      input.search { width: 100%; padding: 6px 8px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 4px; font-size: 13px; }
+      .searchRow { display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+      .searchRow small { color: #666; margin-left: auto; }
+      .line.hit { background: #1d2a1a; }
+      .line.hit-current { background: #2a4022; outline: 1px solid #3fdc5a; }
+      input[type=range] { width: 100%; }
+
+      .script { overflow: auto; padding: 12px 0 50vh; }
+      .line { display: grid; grid-template-columns: 60px 1fr 60px; gap: 12px; padding: 8px 16px 8px 0; border-left: 5px solid transparent; font-size: 17px; color: #bbb; cursor: pointer; }
+      .line:hover { background: #1a1a1a; }
+      .line .num { font-family: Menlo, monospace; font-size: 12px; color: var(--dim); text-align: right; padding-top: 4px; }
+      .line .speaker { display: block; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); }
+      .line .score { font-family: Menlo, monospace; font-size: 12px; color: var(--dim); text-align: right; padding-top: 4px; }
+      .line.live { background: #0f0f0f; border-left-color: #3fdc5a; color: #fff; }
+      .line.window { color: #ddd; }
+      .line.window .score { color: var(--standby); }
+      .line.direction { font-style: italic; color: #666; font-size: 13px; padding-top: 2px; padding-bottom: 2px; }
+      .line.act { margin-top: 28px; font-size: 20px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: #eee; border-top: 1px solid var(--line); padding-top: 16px; }
+      .line.scene { margin-top: 14px; font-size: 14px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--standby); }
+      .line.act .score, .line.scene .score, .line.act .num, .line.scene .num { visibility: hidden; }
+      .line.direction .score { display: none; }
+    </style>
+  </head>
+  <body>
+    <script src="/nav.js"></script>
+    <header>
+      <span class="tag">FOLLOW</span>
+      <span id="status" style="color: var(--dim)">Not listening</span>
+    </header>
+
+    <main>
+      <div class="side">
+        <h2>Microphone</h2>
+        <button class="listen" id="listen">Start listening</button>
+        <select id="input"><option value="">Default input</option></select>
+        <div class="meter"><div id="level"></div></div>
+        <div class="device" id="device">Checking input…</div>
+        <select id="engine">
+          <option value="server">Recogniser: this computer (Whisper, works offline and in the app)</option>
+          <option value="browser">Recogniser: Chrome (Google, needs internet)</option>
+        </select>
+        <div class="warn" id="electronWarn" hidden>
+          Chrome's recogniser does not work inside the app window.
+          Pick "this computer" above, or open this page in Chrome: <b id="url"></b>
+        </div>
+
+        <h2>Position</h2>
+        <div class="row">
+          <button id="back">◀ Back</button>
+          <button id="fwd">Forward ▶</button>
+          <button id="top">Top</button>
+          <button id="now" title="Scroll the script to the live line">⦿ Show current</button>
+        </div>
+        <select id="jump" title="Start following from an act or scene"><option value="">Jump to act / scene…</option></select>
+        <div class="device" id="found"></div>
+        <label class="slider">Evidence needed <span id="thresholdValue">7</span>
+          <input type="range" id="threshold" min="4" max="14" step="1" value="7" />
+        </label>
+        <div class="device">Lower = moves sooner, higher = fewer false jumps</div>
+
+        <h2>Search</h2>
+        <input id="search" class="search" placeholder="Find a line… (⌘F)">
+        <div class="device searchRow"><span id="searchCount"></span> <small>↑↓ step · Enter = make it the live line</small></div>
+
+        <h2>Heard</h2>
+        <div class="heard" id="heard"></div>
+      </div>
+
+      <div class="script" id="script"></div>
+    </main>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="/search.js"></script>
+    <script src="/autoscroll.js"></script>
+    <script src="/goto.js"></script>
+    <script>
+      const socket = io();
+      const $ = (id) => document.getElementById(id);
+
+      let script = [];
+      let position = -1; // index of the line we believe is live; -1 = top of show
+      let minScore = 7; // how much matching evidence we need before moving (slider)
+      const RECENT = 14; // how many of the latest heard words we try to place
+      let lastScores = new Map(); // line index -> best alignment score, for the on-screen numbers
+      let onScript = false; // did the newest words fit the script anywhere?
+
+      // Stage directions are never spoken, so the matcher skips them.
+      const isDirection = (line) => !line.speaker || /^stage$/i.test(line.speaker);
+
+      // Three ways this page can run:
+      //   headless   - the app's hidden window: holds the mic, matches, moves the script. Never shown.
+      //   controller - a visible page while a headless one exists: its buttons drive the headless one
+      //   local      - plain Chrome with no headless window: does everything itself, as before
+      const headless = new URLSearchParams(location.search).has("headless");
+      let ls = { listening: false, micId: "", minScore: 7, headless: false, owner: null, headlessDevice: null };
+      const me = window.DEVICE_ID;
+      // a remote control only for this device's own hidden listener (the app's windows)
+      const controller = () => !headless && ls.headless && ls.headlessDevice === me;
+      // some other device holds the microphone: this page may only watch
+      const elsewhere = () => !!ls.owner && ls.owner !== me;
+
+      socket.on("state", (s) => {
+        script = s.script || [];
+        position = s.scriptPosition ?? -1;
+        fillJump();
+        if (s.listenState) applyListenState(s.listenState);
+        render();
+      });
+      socket.on("listenState", (st) => { applyListenState(st); render(); });
+
+      function applyListenState(st) {
+        ls = st;
+        $("threshold").value = ls.minScore;
+        $("thresholdValue").textContent = ls.minScore;
+        const locked = elsewhere() && !listening;
+        $("listen").disabled = locked;
+        $("listen").textContent = locked ? "Listening on another device" : (controller() ? ls.listening : listening) ? "Stop listening" : "Start listening";
+        $("input").disabled = locked;
+        if (headless) {
+          minScore = ls.minScore;
+          if (ls.micId !== micId) { micId = ls.micId; openMic(); }
+          if (ls.listening && !listening) startListening();
+          if (!ls.listening && listening) stopListening();
+        } else if (controller()) {
+          minScore = ls.minScore;
+          $("listen").classList.toggle("on", ls.listening);
+          $("engine").hidden = true; // the app always listens on this computer
+          $("electronWarn").hidden = true;
+        }
+      }
+      socket.on("listenDenied", () => {
+        stopListening();
+        $("status").textContent = "Another device is already listening";
+      });
+      // say hello on every connection, not just the first: after a dropped connection the server
+      // would otherwise forget there is a hidden listener and every page would lose the badge
+      if (headless) socket.on("connect", () => socket.emit("listenHello", { device: me }));
+      socket.on("scriptPosition", (index) => {
+        position = index;
+        render();
+      });
+
+      // --- matching ---------------------------------------------------------
+      //
+      // The heard words are lined up against the upcoming script words with a
+      // local sequence alignment (the Smith-Waterman method). A matching word
+      // scores +2, a misheard word -1, a skipped or extra word -1. Wherever the
+      // newest heard words line up best is where the actor is. Improvised words
+      // fit nowhere, so nothing moves until the text comes back.
+
+      // "To be, or not to be!" -> ["to", "be", "or", "not", "to", "be"]
+      // Apostrophes are dropped so "'tis" and "don't" match what Chrome writes ("tis", "dont").
+      // (acting notes) in a line are never spoken, so they are dropped before matching
+      const words = (t) => (t || "").replace(/\([^)]*\)/g, " ").toLowerCase().replace(/[^a-z0-9 ]/g, "").split(/\s+/).filter(Boolean);
+
+      // Number of single-letter edits to turn a into b
+      function editDistance(a, b) {
+        let prev = Array.from({ length: b.length + 1 }, (_, j) => j);
+        for (let i = 1; i <= a.length; i++) {
+          const cur = [i];
+          for (let j = 1; j <= b.length; j++)
+            cur[j] = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+          prev = cur;
+        }
+        return prev[b.length];
+      }
+
+      // 1 = same word, 0.6..0.99 = close enough ("nobler" vs "noblur"), 0 = different.
+      // Short words must be exact; "in" and "is" are not the same word.
+      function similarity(a, b) {
+        if (a === b) return 1;
+        if (a.length < 4 || b.length < 4) return 0;
+        const sim = 1 - editDistance(a, b) / Math.max(a.length, b.length);
+        return sim >= 0.6 ? sim : 0;
+      }
+
+      // --- where are we? ------------------------------------------------------
+      //
+      // The heard words are lined up against the WHOLE script (the Smith-Waterman local
+      // alignment: a matching word +2, a misheard one -1, a skipped or extra word -1). But
+      // every line carries a cost that grows with its distance from the current position,
+      // and more again for crossing into another scene or act. A line only counts when its
+      // score beats minScore + cost. So:
+      //   - the next few lines need little evidence and move us at once
+      //   - a far line needs a lot, must beat every other part of the script clearly, and
+      //     must be seen twice with fresh words in between before we move (a late start,
+      //     a skipped scene)
+      //   - going back more than a few lines never happens by itself (use Jump to)
+
+      const NEAR = 12;        // spoken lines ahead that count as "near"
+      const MAX_BACK = 8;     // the furthest the follower steps back on its own while it is on track
+      const FAR_COOLDOWN = 15000; // ms between far jumps
+      const LOST_AFTER = 4;   // results in a row with the newest words landing nowhere -> we are lost
+      let missStreak = 0;
+      let lost = false;       // lost: search the whole script both ways (still needs two sightings)
+
+      let streamCache = null;
+      function scriptStream() { // every spoken word with its line, plus each line's scene and act number
+        if (streamCache?.script === script) return streamCache;
+        const stream = [], sceneOf = [], actOf = [];
+        let scene = 0, act = 0;
+        script.forEach((line, i) => {
+          if (line.heading) { if (/^(act|prologue|epilogue)\b/i.test(line.text)) act++; scene++; }
+          sceneOf[i] = scene; actOf[i] = act;
+          if (!isDirection(line)) for (const w of words(line.text)) stream.push({ w, line: i });
+        });
+        streamCache = { script, stream, sceneOf, actOf };
+        return streamCache;
+      }
+
+      // spoken lines strictly after a, up to and including b (directions and headings don't count)
+      function spokenBetween(a, b) {
+        let n = 0;
+        for (let i = a + 1; i <= b; i++) if (!isDirection(script[i])) n++;
+        return n;
+      }
+
+      // Extra evidence a line needs because of where it is. Infinity = never.
+      // When we are lost the whole script is open both ways, with a lower cap, so we can get back.
+      function costOf(line, S) {
+        if (line === position) return 0;
+        const from = Math.max(position, 0);
+        const scenes = Math.abs(S.sceneOf[line] - S.sceneOf[from]), acts = Math.abs(S.actOf[line] - S.actOf[from]);
+        const cap = lost ? 6 : 9;
+        if (line > position) {
+          const ahead = spokenBetween(position, line) - 1;          // 0 = the very next line
+          if (ahead <= NEAR) return Math.min(ahead, 4) * 1.5;        // near: a little per skipped line
+          return Math.min(cap, 6 + 0.25 * (ahead - NEAR) + 2 * scenes + 3 * acts);
+        }
+        const back = spokenBetween(line, position);
+        if (back <= MAX_BACK) return 2 + back;
+        return lost ? Math.min(cap, 4 + 0.25 * back + 2 * scenes + 3 * acts) : Infinity;
+      }
+      const isFar = (line) => line < position ? spokenBetween(line, position) > 2 : spokenBetween(position, line) - 1 > NEAR;
+
+      // heard = latest words; returns the best qualifying place for the newest words
+      function align(heard) {
+        const S = scriptStream(), stream = S.stream;
+        const m = heard.length, n = stream.length;
+        const cost = new Map();
+        const needOf = (line) => { if (!cost.has(line)) cost.set(line, minScore + costOf(line, S)); return cost.get(line); };
+        let prev = new Float32Array(n + 1), cur = new Float32Array(n + 1);
+        const bestPerLine = new Map();
+        let pick = null;
+        for (let i = 1; i <= m; i++) {
+          cur[0] = 0;
+          for (let j = 1; j <= n; j++) {
+            const sim = similarity(heard[i - 1], stream[j - 1].w);
+            const diag = prev[j - 1] + (sim ? 2 * sim : -1);
+            const h = Math.max(0, diag, prev[j] - 1, cur[j - 1] - 1);
+            cur[j] = h;
+            if (h < 2) continue;
+            const { line } = stream[j - 1];
+            if (h > (bestPerLine.get(line) || 0)) bestPerLine.set(line, h);
+            const need = needOf(line);
+            if (h >= need && (!pick || i > pick.row || h - need > pick.surplus)) pick = { row: i, score: h, surplus: h - need, line };
+          }
+          [prev, cur] = [cur, prev];
+        }
+        return { pick, bestPerLine, rows: m };
+      }
+
+      // A far place must be seen twice, with fresh words in between, before we go there
+      let farSeen = null;      // { line, words } the far place we are waiting to confirm
+      let lastFarJump = 0;
+
+      // transcript = everything heard so far this session; only the tail matters
+      function follow(transcript) {
+        const all = words(transcript);
+        const heard = all.slice(-RECENT);
+        const { pick, bestPerLine, rows } = align(heard);
+        lastScores = bestPerLine;
+        onScript = !!pick && pick.row >= rows - 2; // the newest few words landed somewhere
+        // back on track only when the words land near us (or a far jump is confirmed below); a far
+        // sighting on its own keeps us "lost", so the whole script stays open until we actually move
+        if (onScript && !isFar(pick.line)) { missStreak = 0; if (lost) { lost = false; $("found").textContent = ""; } }
+        else if (!onScript && ++missStreak >= LOST_AFTER && !lost && position >= 0) {
+          lost = true;
+          $("found").textContent = "Off script – searching the whole play for where we are";
+        }
+        if (!pick) return render();
+        if (!isFar(pick.line)) {
+          farSeen = null;
+          if (pick.line > position) setPosition(pick.line); else render();
+          return;
+        }
+        // far: clear winner? seen before with new words since? not just after another far jump?
+        const rivals = [...bestPerLine.entries()].filter(([line]) => Math.abs(line - pick.line) > 3).map(([, h]) => h);
+        const runnerUp = rivals.length ? Math.max(...rivals) : 0;
+        const clear = pick.score - runnerUp >= 3;
+        if (!farSeen || Math.abs(farSeen.line - pick.line) > 3) {
+          farSeen = { line: pick.line, words: all.length };
+          $("found").textContent = "Might be at " + whereIs(pick.line) + " – waiting to be sure";
+          return render();
+        }
+        if (!clear || all.length - farSeen.words < 4 || (!lost && Date.now() - lastFarJump < FAR_COOLDOWN)) return render();
+        farSeen = null;
+        lost = false;
+        missStreak = 0;
+        lastFarJump = Date.now();
+        $("found").textContent = "Found you at " + whereIs(pick.line);
+        setPosition(pick.line);
+      }
+
+      // the next NEAR spoken lines, highlighted on screen so the operator sees what we're watching
+      function nearLines() {
+        const set = new Set();
+        let n = 0;
+        for (let i = Math.max(position, 0); i < script.length && n <= NEAR; i++) {
+          if (isDirection(script[i])) continue;
+          if (i !== position) n++;
+          set.add(i);
+        }
+        return set;
+      }
+
+      // "Act Two, Scene One · line 412" for a line index, from the headings above it
+      function whereIs(index) {
+        let act = "", scene = "";
+        for (let i = 0; i <= index; i++) {
+          const l = script[i];
+          if (!l.heading) continue;
+          if (/^(act|prologue|epilogue)\b/i.test(l.text)) { act = l.text; scene = ""; } else scene = l.text;
+        }
+        const n = script.slice(0, index + 1).filter((l) => !isDirection(l)).length;
+        return [act, scene].filter(Boolean).join(", ").toLowerCase().replace(/(^|\s)\w/g, (c) => c.toUpperCase()) + (act || scene ? " · " : "") + "line " + n;
+      }
+
+      function setPosition(index) {
+        index = Math.max(-1, Math.min(script.length - 1, index));
+        if (index === position) return;
+        position = index;
+        socket.emit("scriptPosition", index);
+        render();
+      }
+
+      // --- screen -----------------------------------------------------------
+
+      function render() {
+        const box = $("script");
+        box.innerHTML = "";
+        const window_ = nearLines();
+        let spoken = 0;
+        script.forEach((line, n) => {
+          if (!isDirection(line)) spoken++;
+          const div = document.createElement("div");
+          div.className = "line" +
+            (n === position ? " live" : "") +
+            (window_.has(n) ? " window" : "") +
+            (line.heading ? (/^(act|prologue|epilogue)\b/i.test(line.text) ? " act" : " scene") : isDirection(line) ? " direction" : "");
+          const s = lastScores.get(n);
+          div.innerHTML = `
+            <span class="num">${isDirection(line) ? "" : String(spoken).padStart(3, "0")}</span>
+            <span>${line.speaker ? `<span class="speaker">${line.speaker}</span>` : ""}${line.text || ""}</span>
+            <span class="score">${s ? s.toFixed(1) : ""}</span>`;
+          div.title = "Click to jump here";
+          div.onclick = () => setPosition(n);
+          box.appendChild(div);
+        });
+        const live = box.querySelector(".line.live");
+        if (live) auto.follow(live); // instant, and not while the reader has scrolled away
+        search.apply();
+        const on = controller() ? ls.listening : listening;
+        $("status").textContent = (on ? (onScript ? "On script" : lost ? "Off script, searching" : "Listening") + (controller() ? " in the background" : "") : "Not listening") +
+          (position >= 0 ? `   ·   line ${script.slice(0, position + 1).filter((l) => !isDirection(l)).length} of ${script.filter((l) => !isDirection(l)).length}` : "   ·   top of show");
+      }
+
+      $("back").onclick = () => setPosition(position - 1);
+      $("fwd").onclick = () => setPosition(position + 1);
+      $("top").onclick = () => setPosition(-1);
+      const goto = installGoto($("jump"), (line, label) => {
+        farSeen = null; lastFarJump = 0; lost = false; missStreak = 0;
+        $("found").textContent = "Following from " + label;
+        setPosition(line); // the menu keeps showing the choice
+      });
+      const fillJump = () => goto.fill(script);
+      // Enter on a search hit makes that line the live one
+      const search = installSearch({
+        input: $("search"), count: $("searchCount"), box: $("script"),
+        onPick: (el) => { const n = [...$("script").children].indexOf(el); if (n >= 0) setPosition(n); },
+      });
+      const auto = installAutoScroll($("script"));
+      $("now").onclick = () => auto.resume();
+      $("threshold").oninput = (e) => {
+        minScore = Number(e.target.value);
+        $("thresholdValue").textContent = minScore;
+        if (controller()) socket.emit("listenControl", { device: me, minScore });
+      };
+      document.addEventListener("keydown", (e) => {
+        if (e.metaKey || e.ctrlKey) return;
+        if (e.key === "ArrowDown" || e.key === "ArrowRight") setPosition(position + 1);
+        if (e.key === "ArrowUp" || e.key === "ArrowLeft") setPosition(position - 1);
+      });
+
+      // --- microphone -------------------------------------------------------
+
+      // The chosen input feeds both the level meter and the recogniser.
+      // Chrome remembers device ids per site, so the choice survives a reload.
+      let micStream = null;
+      let micId = "";
+      try { micId = localStorage.getItem("followMic") || ""; } catch (_) {}
+
+      const audioCtx = new AudioContext();
+      const analyser = audioCtx.createAnalyser();
+      analyser.fftSize = 512;
+      let micSource = null;
+      (function meter() {
+        const buf = new Uint8Array(analyser.fftSize);
+        analyser.getByteTimeDomainData(buf);
+        let peak = 0;
+        for (const v of buf) peak = Math.max(peak, Math.abs(v - 128));
+        $("level").style.width = Math.min(100, (peak / 128) * 300) + "%";
+        requestAnimationFrame(meter);
+      })();
+
+      async function openMic() {
+        if (micStream) for (const t of micStream.getTracks()) t.stop();
+        if (micSource) micSource.disconnect();
+        // Raw audio: no echo cancelling, noise suppression or auto gain. Those are for video calls;
+        // they chew up a stage mic feed, and on a Mac echo cancelling removes anything the computer plays.
+        const raw = { echoCancellation: false, noiseSuppression: false, autoGainControl: false };
+        const constraints = { audio: micId ? { ...raw, deviceId: { exact: micId } } : raw };
+        try {
+          micStream = await navigator.mediaDevices.getUserMedia(constraints);
+        } catch (err) {
+          if (micId) { micId = ""; return openMic(); } // the saved device is gone; fall back to default
+          $("device").textContent = "Mic blocked: " + err.message;
+          return;
+        }
+        micSource = audioCtx.createMediaStreamSource(micStream);
+        micSource.connect(analyser);
+        if (sender) micSource.connect(sender);
+        if (audioCtx.state === "suspended") audioCtx.resume();
+        $("device").textContent = "Hearing: " + (micStream.getAudioTracks()[0].label || "default input");
+        await listInputs();
+      }
+
+      // Device names only appear once the mic permission has been granted
+      async function listInputs() {
+        const devices = await navigator.mediaDevices.enumerateDevices();
+        const sel = $("input");
+        sel.innerHTML = '<option value="">Default input</option>';
+        for (const d of devices) {
+          if (d.kind !== "audioinput" || d.deviceId === "default") continue;
+          const o = document.createElement("option");
+          o.value = d.deviceId;
+          o.textContent = d.label || "Input " + (sel.length);
+          sel.appendChild(o);
+        }
+        sel.value = micId;
+        if (sel.value !== micId) sel.value = "";
+      }
+
+      $("input").onchange = async (e) => {
+        micId = e.target.value;
+        try { localStorage.setItem("followMic", micId); } catch (_) {}
+        if (controller()) socket.emit("listenControl", { device: me, micId });
+        await openMic();
+        if (listening && rec) rec.stop(); // onend starts it again on the new input
+      };
+      navigator.mediaDevices.ondevicechange = listInputs;
+      openMic();
+
+      const inElectron = / Electron\//.test(navigator.userAgent);
+      $("url").textContent = location.href;
+
+      // Which recogniser: "server" runs Whisper on the show computer (works everywhere, offline),
+      // "browser" is Chrome's own, which only works in real Chrome with internet.
+      let engine = "server";
+      try { engine = localStorage.getItem("followEngine") || (inElectron ? "server" : "browser"); } catch (_) {}
+      $("engine").value = engine;
+      const showWarn = () => ($("electronWarn").hidden = !(inElectron && engine === "browser"));
+      showWarn();
+      $("engine").onchange = (e) => {
+        engine = e.target.value;
+        try { localStorage.setItem("followEngine", engine); } catch (_) {}
+        showWarn();
+        if (listening) { stopListening(); startListening(); }
+      };
+
+      let rec = null;
+      let listening = false;
+      const Recognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+      // --- server recogniser: send the mic to the server as 16 kHz 16-bit audio -------------
+      let sender = null;      // ScriptProcessor that hands us the raw samples
+      const silent = audioCtx.createGain();
+      silent.gain.value = 0;  // the processor must reach the speakers to run, but we don't want to hear it
+      silent.connect(audioCtx.destination);
+
+      function startServerListening() {
+        sender = audioCtx.createScriptProcessor(4096, 1, 1);
+        const ratio = audioCtx.sampleRate / 16000; // usually 3 (48 kHz) or 2.75 (44.1 kHz)
+        sender.onaudioprocess = (e) => {
+          const input = e.inputBuffer.getChannelData(0);
+          const out = new Int16Array(Math.floor(input.length / ratio));
+          for (let i = 0; i < out.length; i++) {
+            const v = Math.max(-1, Math.min(1, input[Math.floor(i * ratio)]));
+            out[i] = v * 32767;
+          }
+          socket.emit("listenAudio", out.buffer);
+        };
+        if (micSource) micSource.connect(sender);
+        sender.connect(silent);
+        socket.emit("listenStart", { device: me });
+        document.body.classList.add("capturing"); // this device's mic is the one in use
+      }
+      function stopServerListening() {
+        document.body.classList.remove("capturing");
+        socket.emit("listenStop");
+        if (sender) { sender.disconnect(); sender.onaudioprocess = null; sender = null; }
+      }
+      socket.on("listenStatus", (st) => {
+        if (!listening && !controller()) return;
+        if (!st.ready || !onScript) $("status").textContent = st.message;
+        if (st.message.startsWith("Could not")) stopListening();
+      });
+      socket.on("listenResult", ({ final, interim }) => {
+        if (!listening && !controller()) return;
+        $("heard").innerHTML = final.split(/(?<=[.!?])\s+/).slice(-3).join("\n") + `\n<span class="interim">${interim}</span>`;
+        if (!controller()) follow(final + " " + interim); // the headless window does the matching for a controller
+        else { onScript = true; render(); }
+      });
+
+      function startListening() {
+        if (engine === "server") {
+          listening = true;
+          startServerListening();
+          $("listen").textContent = "Stop listening";
+          $("listen").classList.add("on");
+          $("status").textContent = "Starting…";
+          return;
+        }
+        if (!Recognition) {
+          $("status").textContent = "This browser has no speech recognition. Use Chrome.";
+          return;
+        }
+        rec = new Recognition();
+        rec.continuous = true;
+        rec.interimResults = true; // words arrive as they are said, not only at the end of a sentence
+        rec.lang = "en-US";
+        rec.onresult = (e) => {
+          // Chrome re-sends a sentence as it grows, so rebuild the whole transcript
+          // from its results list every time instead of appending.
+          let finals = [], interim = "", all = "";
+          for (let i = 0; i < e.results.length; i++) {
+            const text = e.results[i][0].transcript.trim();
+            all += text + " ";
+            if (e.results[i].isFinal) finals.push(text); else interim += text + " ";
+          }
+          $("heard").innerHTML = finals.slice(-3).join("\n") + `\n<span class="interim">${interim}</span>`;
+          follow(all);
+        };
+        rec.onerror = (e) => {
+          $("status").textContent = "Recognition error: " + e.error +
+            (e.error === "network" ? " (needs internet, and does not work inside the app window)" : "");
+          if (e.error === "not-allowed" || e.error === "network") stopListening();
+        };
+        // Chrome stops by itself after a pause or every few minutes; start it again.
+        // The short delay avoids an "already started" error.
+        rec.onend = () => { if (listening) setTimeout(startRec, 150); };
+        listening = true;
+        document.body.classList.add("capturing");
+        socket.emit("listenOwner", { device: me }); // Chrome's recogniser: this device has the mic
+        startRec();
+        $("listen").textContent = "Stop listening";
+        $("listen").classList.add("on");
+        render();
+      }
+
+      // Recent Chrome accepts an audio track here, so the chosen input is used.
+      // Older Chrome ignores the argument and listens to the system default mic.
+      function startRec() {
+        if (!rec || !listening) return;
+        const track = micStream?.getAudioTracks()[0];
+        try { track ? rec.start(track) : rec.start(); }
+        catch (_) { try { rec.start(); } catch (_) {} }
+      }
+
+      function stopListening() {
+        listening = false;
+        document.body.classList.remove("capturing");
+        socket.emit("listenOwner", { device: null });
+        if (rec) rec.stop();
+        stopServerListening();
+        $("listen").textContent = "Start listening";
+        $("listen").classList.remove("on");
+        render();
+      }
+
+      $("listen").onclick = () => {
+        if (elsewhere() && !listening) return;
+        if (controller()) return socket.emit("listenControl", { device: me, listening: !ls.listening, micId });
+        listening ? stopListening() : startListening();
+      };
+    </script>
+  </body>
+</html>

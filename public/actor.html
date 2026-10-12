@@ -2,6 +2,7 @@
 <html>
   <head>
     <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>Script</title>
     <link rel="stylesheet" href="/style.css" />
     <style>
@@ -26,6 +27,18 @@
         color: #c8c8c8;
       }
       .line .num { font-family: Menlo, monospace; font-size: 13px; letter-spacing: 2px; color: var(--dim); text-align: right; padding-top: 7px; }
+      .line .note { color: #8a8a8a; font-style: italic; }
+      header .jump { margin-left: auto; padding: 5px 8px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 6px; font-size: 13px; max-width: 260px; }
+      header .search { display: flex; align-items: center; gap: 8px; margin-left: 16px; }
+      header .search input { padding: 5px 8px; width: 200px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 6px; font-size: 13px; }
+      header .search span { color: var(--dim); font-size: 12px; min-width: 60px; }
+      .line.hit { background: #1d2a1a; }
+      .line.hit-current { background: #2a4022; outline: 1px solid #3fdc5a; }
+      .line.direction { font-style: italic; color: #777; font-size: 14px; padding-top: 2px; padding-bottom: 2px; }
+      .line.direction .speaker { display: none; }
+      .line.act { margin-top: 36px; font-size: 22px; font-weight: 700; letter-spacing: 3px; text-transform: uppercase; color: #eee; }
+      .line.scene { margin-top: 18px; font-size: 15px; font-weight: 700; letter-spacing: 2px; text-transform: uppercase; color: var(--standby); }
+      .line.act .num, .line.scene .num { visibility: hidden; }
       .line .speaker { display: block; font-size: 12px; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); margin-bottom: 2px; }
       .line.live { background: #0f0f0f; border-left-color: var(--green); color: #fff; font-size: 28px; font-weight: 600; }
       .line.live .num { color: #fff; }
@@ -61,6 +74,52 @@
       @keyframes pulse { 50% { box-shadow: 0 0 6px rgba(242, 201, 76, 0.2); } }
 
       .empty { padding: 24px; color: var(--dim); }
+      @media (max-width: 760px) {
+        header { flex-wrap: wrap; gap: 8px; padding: 10px 12px; }
+        header .title, header .jump, header .search { display: none; }
+        .line { grid-template-columns: 44px 1fr; font-size: 18px; padding-right: 12px; }
+        .line .num { font-size: 11px; }
+        .marker { margin-left: 44px; }
+        .marker.standby { margin-left: 44px; max-width: none; font-size: 17px; }
+      }
+
+      /* import: a file picker in the header and a preview before the script is replaced */
+      [hidden] { display: none !important; }
+      header button.import { margin-left: auto; font-size: 12px; color: var(--dim); padding: 5px 10px; }
+      header button.import:hover { color: var(--text); }
+      body.dragging::after { content: "Drop the script to import it"; position: fixed; inset: 12px; border: 3px dashed var(--accent); border-radius: 12px; background: rgba(76, 141, 255, 0.12); color: var(--text); font-size: 24px; display: flex; align-items: center; justify-content: center; z-index: 20; pointer-events: none; }
+      .pick { overflow: auto; padding: 16px 18px; display: flex; flex-direction: column; gap: 14px; }
+      .drop { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 16px; border: 2px dashed var(--line); border-radius: 10px; color: var(--dim); text-align: center; }
+      .drop.over { border-color: var(--accent); background: rgba(76, 141, 255, 0.08); }
+      .drop b { color: var(--text); font-size: 16px; }
+      .drop small { font-size: 12px; }
+      .drop label.choose { cursor: pointer; background: #2a2a2a; color: var(--text); border: 1px solid var(--line); border-radius: 6px; padding: 8px 14px; font-size: 14px; }
+      .drop label.choose:hover { background: #333; }
+      .pick details summary { cursor: pointer; color: var(--dim); font-size: 13px; }
+      .pick textarea { width: 100%; height: 120px; margin: 8px 0; padding: 8px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 6px; font-family: Menlo, monospace; font-size: 13px; resize: vertical; }
+      .help { font-size: 13px; color: var(--dim); line-height: 1.5; }
+      .help ul { margin: 6px 0; padding-left: 20px; }
+      .help b { color: #ccc; }
+      .empty button { margin-left: 10px; }
+      .modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: flex; align-items: center; justify-content: center; z-index: 10; }
+      .modal .box { width: min(760px, 92vw); max-height: 86vh; display: flex; flex-direction: column; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; }
+      .modal h2 { margin: 0; padding: 14px 18px; font-size: 16px; border-bottom: 1px solid var(--line); }
+      .modal .stats { padding: 10px 18px; color: var(--dim); font-size: 13px; border-bottom: 1px solid var(--line); }
+      .modal .preview { overflow: auto; padding: 8px 18px; font-size: 14px; }
+      .modal .stats button { font-size: 12px; padding: 2px 8px; margin: 2px 2px 2px 0; border-radius: 10px; }
+      .modal .rename { padding: 8px 18px; font-size: 13px; background: #222; border-bottom: 1px solid var(--line); display: flex; gap: 8px; align-items: center; }
+      .modal .rename input { padding: 4px 6px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 4px; }
+      .modal .row { display: grid; grid-template-columns: 92px 120px 1fr auto; gap: 6px; align-items: start; padding: 3px 0; border-bottom: 1px solid #222; }
+      .modal .row select, .modal .row input, .modal .row textarea { padding: 4px 6px; background: #111; color: var(--text); border: 1px solid #2a2a2a; border-radius: 4px; font-size: 13px; font-family: inherit; }
+      .modal .row textarea { width: 100%; resize: none; overflow: hidden; line-height: 1.35; }
+      .modal .row.stage textarea { font-style: italic; color: #aaa; }
+      .modal .row.head textarea { font-weight: bold; color: var(--standby); }
+      .modal .row .tools { display: flex; gap: 2px; }
+      .modal .row .tools button { padding: 3px 6px; font-size: 12px; color: var(--dim); }
+      .modal .row .tools button:hover { color: var(--text); }
+      .modal .row.has-cue textarea { border-left: 3px solid var(--purple); }
+      .modal .buttons { display: flex; gap: 8px; justify-content: flex-end; padding: 12px 18px; border-top: 1px solid var(--line); }
+      .modal .warn { margin-right: auto; color: var(--standby); font-size: 12px; align-self: center; }
     </style>
   </head>
   <body>
@@ -69,19 +128,87 @@
       <span class="tag">SCRIPT</span>
       <span class="status" id="status">Top of show</span>
       <span class="title" id="title"></span>
+      <select id="jump" class="jump" title="Go to an act or scene"><option value="">Jump to act / scene…</option></select>
+      <span class="search"><input id="search" placeholder="Search script… (⌘F)"><span id="searchCount"></span></span>
+      <button class="import" id="editOpen" data-edit-only>Edit script…</button>
+      <button class="import" id="importOpen" data-edit-only>Import script…</button>
     </header>
+
+    <div class="modal" id="importModal" hidden>
+      <div class="box">
+        <h2 id="importTitle">Import a script</h2>
+
+        <!-- step 1: choose where the script comes from -->
+        <div class="pick" id="importPick">
+          <div class="drop" id="importDrop">
+            <b>Drop a script file here</b>
+            <span>or</span>
+            <label class="choose">Choose a file… <input type="file" id="importFile" accept=".txt,.md,.fountain,.docx,.pdf" hidden></label>
+            <small>Word (.docx) · PDF (.pdf) · plain text (.txt, .md, .fountain)</small>
+          </div>
+          <details>
+            <summary>Or paste the text</summary>
+            <textarea id="importText" placeholder="HAMLET&#10;To be, or not to be, that is the question.&#10;&#10;OPHELIA: Good my lord, how does your honour?"></textarea>
+            <button id="importPaste">Read pasted text</button>
+          </details>
+          <div class="help">
+            <b>How it reads a script</b>
+            <ul>
+              <li><b>Speaker names</b> in CAPITALS on their own line, or <i>Name:</i> at the start of a line. In Word files a <b>bold</b> name also works.</li>
+              <li><b>Stage directions</b> in <i>italics</i>, in [brackets] or (parentheses), or lines starting Enter / Exit.</li>
+              <li><b>Headings</b> such as ACT I or SCENE 2, and the title page.</li>
+              <li>Word files keep the most formatting, so they import best. PDFs and plain text rely on the layout alone.</li>
+            </ul>
+            You will see every line before anything is replaced.
+          </div>
+        </div>
+
+        <!-- step 2: preview what the file became -->
+        <div class="stats" id="importStats" hidden></div>
+        <div class="rename" id="importRename" hidden>
+          Rename <b id="renameFrom"></b> everywhere to <input id="renameTo"> <button id="renameOk">Rename</button> <button id="renameCancel">Cancel</button>
+        </div>
+        <div class="preview" id="importPreview" hidden></div>
+        <datalist id="speakerList"></datalist>
+
+        <div class="buttons">
+          <span class="warn" id="importWarn" hidden>Replaces the current script and its cue markers.</span>
+          <button id="importBack" hidden>◀ Different file</button>
+          <button id="importCancel">Cancel</button>
+          <button id="importOk" hidden>Replace script</button>
+        </div>
+      </div>
+    </div>
 
     <main id="script"></main>
 
     <script src="/socket.io/socket.io.js"></script>
+    <script src="/search.js"></script>
+    <script src="/autoscroll.js"></script>
+    <script src="/goto.js"></script>
     <script>
       const socket = io();
       const $ = (id) => document.getElementById(id);
 
       // Script lines in show.json look like { speaker: "HAMLET", text: "To be...", cue: "3" }.
       // "cue" is optional and may be a list if several cues fire on one line.
-      socket.on("state", ({ currentCue, cues, script, title }) => {
+      let last = null; // the most recent state, so a position change can redraw
+      let scriptPosition = -1; // live line from the Follow page; -1 = none, fall back to cues
+
+      socket.on("scriptPosition", (index) => {
+        scriptPosition = index;
+        if (last) draw(last);
+      });
+
+      socket.on("state", (s) => {
+        last = s;
+        scriptPosition = s.scriptPosition ?? -1;
+        draw(s);
+      });
+
+      function draw({ currentCue, cues, script, title }) {
         $("title").textContent = title || "";
+        if (goto.fill && $("jump").options.length <= 1 || lastScript !== script) { goto.fill(script); lastScript = script; }
         const box = $("script");
         box.innerHTML = "";
 
@@ -96,11 +223,19 @@
           : `STANDBY ${nextNumber ?? "–"}`;
 
         if (!script || script.length === 0) {
-          box.innerHTML = '<p class="empty">No script yet. Add a "script" list to show.json.</p>';
+          box.innerHTML = '<p class="empty">No script yet. <button id="importEmpty">Import a script…</button></p>';
+          $("importEmpty").onclick = openImport;
           return;
         }
 
+        // The live line: the one the Follow page heard, or else the one whose cue just fired
+        const isLive = (line, n) =>
+          scriptPosition >= 0 ? n === scriptPosition : [].concat(line.cue || []).includes(liveNumber);
+
+        let spoken = 0; // line numbers count talking only; directions and headings sit between them unnumbered
         script.forEach((line, n) => {
+          const isSpeech = !line.heading && line.speaker && !/^stage$/i.test(line.speaker);
+          if (isSpeech) spoken++;
           // Cue markers first, so they appear just above their line
           for (const number of [].concat(line.cue || [])) {
             const cue = cues[byNumber.get(number)];
@@ -120,17 +255,182 @@
           }
 
           const div = document.createElement("div");
-          div.className = "line" + ([].concat(line.cue || []).includes(liveNumber) ? " live" : "");
+          div.className = "line" + (isLive(line, n) ? " live" : "") +
+            (line.heading ? (/^(act|prologue|epilogue)\b/i.test(line.text) || n < 2 ? " act" : " scene") : "") +
+            (!line.heading && (!line.speaker || /^stage$/i.test(line.speaker)) ? " direction" : "");
           div.innerHTML = `
-            <span class="num">${String(n + 1).padStart(3, "0")}</span>
-            <span>${line.speaker ? `<span class="speaker">${line.speaker}</span>` : ""}${line.text || ""}</span>`;
+            <span class="num">${isSpeech ? String(spoken).padStart(3, "0") : ""}</span>
+            <span>${line.speaker ? `<span class="speaker">${line.speaker}</span>` : ""}${(line.text || "").replace(/\(([^)]*)\)/g, "<i class=\"note\">($1)</i>")}</span>`;
           box.appendChild(div);
         });
 
         // Keep the live line (or the standby marker) in view as the show moves on
         const focus = box.querySelector(".line.live") || box.querySelector(".marker.standby");
-        if (focus) focus.scrollIntoView({ block: "center", behavior: "smooth" });
+        if (focus) auto.follow(focus); // instant, and not while the reader has scrolled away
+        search.apply();
+      }
+      const search = installSearch({ input: $("search"), count: $("searchCount"), box: $("script") });
+      let lastScript = null;
+      const auto = installAutoScroll($("script"));
+      const goto = installGoto($("jump"), (line) => {
+        const el = $("script").querySelectorAll(".line")[line];
+        if (!el) return;
+        auto.pause(); // reading ahead: the live line must not pull us back until asked
+        el.scrollIntoView({ block: "start", behavior: "instant" });
       });
+
+      // --- import a script: step 1 pick a file (drop, choose or paste), step 2 preview what it became, then replace
+      let imported = null;
+
+      // show step 1 or step 2 of the box
+      function importStep(preview) {
+        $("importPick").hidden = preview;
+        for (const id of ["importStats", "importPreview", "importWarn", "importBack", "importOk"]) $(id).hidden = !preview;
+        $("importRename").hidden = true;
+        $("importOk").textContent = "Replace script";
+      }
+      function openImport() {
+        $("importTitle").textContent = "Import a script";
+        importStep(false);
+        $("importModal").hidden = false;
+      }
+      $("importOpen").onclick = openImport;
+
+      // send a file (or pasted text) to the server and preview the lines it found
+      async function importFrom(body, name) {
+        $("importTitle").textContent = "Import " + name;
+        $("importStats").textContent = "Reading…";
+        $("importPreview").innerHTML = "";
+        importStep(true);
+        $("importOk").disabled = true;
+        $("importModal").hidden = false;
+        try {
+          const res = await fetch("/script/import?name=" + encodeURIComponent(name), { method: "POST", body });
+          const data = await res.json();
+          if (data.error) throw new Error(data.error);
+          if (!data.lines.length) throw new Error("no lines were found in it");
+          showImport(data);
+        } catch (err) {
+          $("importStats").textContent = "Could not read that: " + err.message + ". Try a Word file, or paste the text instead.";
+        }
+      }
+      $("importFile").onchange = (e) => {
+        const file = e.target.files[0];
+        e.target.value = "";
+        if (file) importFrom(file, file.name);
+      };
+      $("importPaste").onclick = () => {
+        const text = $("importText").value.trim();
+        if (text) importFrom(text, "pasted text.txt");
+      };
+
+      // drag a file onto the page or onto the drop zone
+      let dragDepth = 0;
+      document.addEventListener("dragenter", (e) => { if (e.dataTransfer?.types.includes("Files")) { dragDepth++; document.body.classList.add("dragging"); } });
+      document.addEventListener("dragleave", () => { if (--dragDepth <= 0) { dragDepth = 0; document.body.classList.remove("dragging"); } });
+      document.addEventListener("dragover", (e) => e.preventDefault());
+      document.addEventListener("drop", (e) => {
+        e.preventDefault();
+        dragDepth = 0;
+        document.body.classList.remove("dragging");
+        const file = e.dataTransfer?.files[0];
+        if (file) importFrom(file, file.name);
+      });
+
+      // --- the editable preview. `imported` is the list being edited; inputs write straight into it,
+      // and structural changes (delete, merge, insert, rename) redraw the list.
+      const kindOf = (l) => (l.heading ? "heading" : l.speaker === "Stage" ? "stage" : "speech");
+      function setKind(l, kind) {
+        delete l.heading;
+        if (kind === "heading") { l.heading = true; l.speaker = ""; }
+        else if (kind === "stage") l.speaker = "Stage";
+        else if (!l.speaker || l.speaker === "Stage") l.speaker = lastSpeakerBefore(imported.indexOf(l)) || "Speaker";
+      }
+      const lastSpeakerBefore = (i) => { for (let k = i - 1; k >= 0; k--) if (kindOf(imported[k]) === "speech") return imported[k].speaker; return ""; };
+      const countStats = (lines) => {
+        const st = { lines: lines.length, speakers: {}, directions: 0, headings: 0 };
+        for (const l of lines) { const k = kindOf(l); if (k === "heading") st.headings++; else if (k === "stage") st.directions++; else st.speakers[l.speaker] = (st.speakers[l.speaker] || 0) + 1; }
+        return st;
+      };
+
+      function showImport({ lines }) {
+        imported = lines;
+        drawImport();
+      }
+      function drawImport() {
+        const stats = countStats(imported);
+        const bar = $("importStats");
+        bar.innerHTML = `${stats.lines} lines · ${stats.headings} headings · ${stats.directions} stage directions · speakers (click to rename): `;
+        const names = Object.entries(stats.speakers).sort((a, b) => b[1] - a[1]);
+        if (!names.length) bar.append("none found");
+        for (const [n, c] of names) {
+          const b = document.createElement("button");
+          b.textContent = `${n} (${c})`;
+          b.onclick = () => { $("renameFrom").textContent = n; $("renameTo").value = n; $("importRename").hidden = false; $("renameTo").focus(); };
+          bar.appendChild(b);
+        }
+        $("speakerList").innerHTML = names.map(([n]) => `<option value="${n.replace(/"/g, "&quot;")}">`).join("");
+        $("importRename").hidden = true;
+
+        const box = $("importPreview");
+        box.innerHTML = "";
+        imported.forEach((l, i) => {
+          const row = document.createElement("div");
+          row.className = "row " + (kindOf(l) === "stage" ? "stage" : kindOf(l) === "heading" ? "head" : "") + (l.cue ? " has-cue" : "");
+          row.innerHTML = `
+            <select title="What kind of line this is">
+              <option value="speech">Speech</option><option value="stage">Direction</option><option value="heading">Heading</option>
+            </select>
+            <input list="speakerList" placeholder="Speaker" title="Who says it">
+            <textarea rows="1" title="${l.cue ? "Cue " + l.cue + " is marked on this line. " : ""}The words"></textarea>
+            <span class="tools">
+              <button title="Join onto the line above">⤴</button>
+              <button title="Add a line after this one">+</button>
+              <button title="Remove this line">✕</button>
+            </span>`;
+          const [sel, who, text] = [row.querySelector("select"), row.querySelector("input"), row.querySelector("textarea")];
+          sel.value = kindOf(l);
+          who.value = kindOf(l) === "speech" ? l.speaker : "";
+          who.disabled = kindOf(l) !== "speech";
+          text.value = l.text;
+          const grow = () => { text.style.height = "auto"; text.style.height = text.scrollHeight + "px"; };
+          requestAnimationFrame(grow);
+          sel.onchange = () => { setKind(l, sel.value); drawImport(); };
+          who.onchange = () => { l.speaker = who.value.trim() || "Speaker"; drawImport(); };
+          text.oninput = () => { l.text = text.value; grow(); };
+          const [up, add, del] = row.querySelectorAll(".tools button");
+          up.disabled = i === 0;
+          up.onclick = () => { imported[i - 1].text = (imported[i - 1].text + " " + l.text).trim(); if (l.cue && !imported[i - 1].cue) imported[i - 1].cue = l.cue; imported.splice(i, 1); drawImport(); };
+          add.onclick = () => { imported.splice(i + 1, 0, { speaker: kindOf(l) === "speech" ? l.speaker : lastSpeakerBefore(i + 1) || "Speaker", text: "" }); drawImport(); box.querySelectorAll("textarea")[i + 1]?.focus(); };
+          del.onclick = () => { imported.splice(i, 1); drawImport(); };
+          box.appendChild(row);
+        });
+        $("importOk").disabled = !imported.length;
+      }
+      $("renameOk").onclick = () => {
+        const from = $("renameFrom").textContent, to = $("renameTo").value.trim();
+        if (to) for (const l of imported) if (kindOf(l) === "speech" && l.speaker === from) l.speaker = to;
+        drawImport();
+      };
+      $("renameCancel").onclick = () => ($("importRename").hidden = true);
+      $("renameTo").onkeydown = (e) => { if (e.key === "Enter") $("renameOk").click(); };
+
+      // edit the script that is already loaded; cue markers ride along on their lines
+      $("editOpen").onclick = () => {
+        $("importTitle").textContent = "Edit script";
+        importStep(true);
+        $("importWarn").hidden = true;
+        $("importBack").hidden = true;
+        $("importOk").textContent = "Save script";
+        $("importModal").hidden = false;
+        showImport({ lines: JSON.parse(JSON.stringify(last?.script || [])) });
+      };
+      $("importCancel").onclick = () => ($("importModal").hidden = true);
+      $("importBack").onclick = openImport;
+      $("importOk").onclick = () => {
+        if (imported) socket.emit("saveScript", imported.filter((l) => l.text.trim() || l.heading)); // empty lines are dropped
+        $("importModal").hidden = true;
+      };
     </script>
   </body>
 </html>

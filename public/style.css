@@ -33,3 +33,54 @@ tr.selected { outline: 1px solid var(--accent); }
 .nav a { padding: 5px 12px; border-radius: 6px; color: var(--dim); text-decoration: none; font-size: 13px; -webkit-app-region: no-drag; }
 .nav a:hover { color: var(--text); }
 .nav a.on { color: var(--text); background: var(--panel); }
+.nav .mode { display: flex; margin-left: auto; align-self: center; border: 1px solid #444; border-radius: 7px; overflow: hidden; -webkit-app-region: no-drag; }
+.nav .mode button { border: none; border-radius: 0; padding: 3px 14px; background: transparent; color: var(--dim); font-size: 13px; font-weight: 600; }
+.nav .mode button.on { background: #4a4a4a; color: #fff; }
+.nav .mode button[data-mode="show"].on { background: #1f8f3a; }
+body.mode-show [data-edit-only] { display: none !important; }
+body.mode-edit [data-show-only] { display: none !important; } /* the live script panels: Show mode only */
+.nav a.listening { margin-left: 8px; color: #3fdc5a; display: flex; align-items: center; gap: 6px; border: 1px solid #1f5c2d; }
+.nav a.listening[hidden] { display: none; }
+.nav a.listening .dot { width: 8px; height: 8px; border-radius: 50%; background: #3fdc5a; animation: listenPulse 1.4s ease-in-out infinite; }
+@keyframes listenPulse { 50% { opacity: 0.3; } }
+
+/* shown by autoscroll.js while the reader has scrolled away from the live line */
+.back-to-live { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); z-index: 30; padding: 10px 18px; border-radius: 20px; background: #1f8f3a; border-color: #1f8f3a; color: #fff; font-weight: bold; box-shadow: 0 4px 16px rgba(0,0,0,0.5); }
+.back-to-live[hidden] { display: none; }
+
+/* phones and small tablets: a control surface, never an editor */
+@media (max-width: 760px) {
+  body { font-size: 16px; }
+  .nav { overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 6px 8px; gap: 4px; }
+  .nav a { padding: 10px 12px; font-size: 15px; white-space: nowrap; }
+  .nav .mode { display: none; }           /* the mode is set from a computer, not a phone */
+  [data-edit-only] { display: none !important; }  /* phones can run a show, not change it */
+  button { padding: 12px 16px; font-size: 16px; }  /* finger-sized */
+  .livescript .sl { font-size: 17px; }
+}
+
+/* script search (search.js): ◀ 1 of 2 ▶ */
+.search-step { padding: 1px 7px; font-size: 11px; border-radius: 4px; color: var(--dim); margin: 0 4px; }
+.search-step:hover { color: var(--text); }
+.search-step[hidden] { display: none; }
+.search-count { display: inline-block; min-width: 50px; }
+
+/* live script panel (livescript.js) */
+.livescript { display: flex; flex-direction: column; min-height: 0; background: #151515; border: 1px solid var(--line); }
+.livescript h3 { margin: 0; padding: 12px 16px 8px; font-size: 11px; letter-spacing: 3px; color: var(--dim); display: flex; justify-content: space-between; align-items: center; }
+.livescript h3 a { color: var(--dim); font-size: 11px; letter-spacing: 0; }
+.livescript .where { padding: 0 16px 8px; font-size: 12px; color: var(--standby); text-transform: uppercase; letter-spacing: 1px; min-height: 14px; }
+.livescript .lines { flex: 1; overflow: hidden; padding: 0 0 16px; }
+/* every line is the same size and spacing, so nothing jumps when the live line moves: only colours change */
+.livescript .sl { padding: 7px 16px 7px 12px; border-left: 4px solid transparent; font-size: 15px; line-height: 1.4; color: #8a8a8a; }
+.livescript .sl .who { display: block; font-size: 10px; letter-spacing: 2px; text-transform: uppercase; color: #666; }
+.livescript .sl.direction { font-style: italic; color: #666; }
+.livescript .sl.heading { font-weight: bold; color: var(--standby); letter-spacing: 1px; font-size: 12px; text-transform: uppercase; }
+.livescript .sl.live { background: var(--live); border-left-color: #3fdc5a; color: #fff; }
+.livescript .sl.live .who { color: #7fe89a; }
+.livescript .sl.ahead { color: #c8c8c8; }
+.livescript .sl .note { color: #777; font-style: italic; }
+.livescript .cue { margin: 4px 16px 0 12px; padding: 2px 8px; font-size: 11px; letter-spacing: 1px; color: #b7a9f0; border-left: 3px solid #8f7fd8; }
+.livescript .cue.standby { background: var(--standby); color: #111; font-weight: bold; border-left-color: #8c6d10; }
+.livescript .cue.done { opacity: 0.45; text-decoration: line-through; }
+.livescript .none { padding: 16px; color: var(--dim); font-size: 13px; }
