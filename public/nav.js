@@ -59,7 +59,26 @@ badge.title = "Speech follower is running. Click for the Follow page.";
 badge.innerHTML = '<span class="dot"></span>Listening';
 badge.hidden = true;
 nav.appendChild(badge);
+
+// Who am I? A guest gets a "view only" badge and a body class (CSS hides the editing tools); the demo
+// site gets a banner. The server enforces both regardless: this is a courtesy, not the lock.
+const guestBadge = document.createElement("a");
+guestBadge.href = "/logout";
+guestBadge.className = "guest-badge";
+guestBadge.title = "You are viewing as a guest. Click to sign in.";
+guestBadge.textContent = "Guest · view only";
+guestBadge.hidden = true;
+nav.appendChild(guestBadge);
+const demoBar = document.createElement("div");
+demoBar.className = "demo-bar";
+demoBar.textContent = "DEMO SITE · try anything: nothing here reaches the lights, sound or the real show";
+demoBar.hidden = true;
 document.body.prepend(nav);
+document.body.prepend(demoBar);
+fetch("/me").then((r) => r.json()).then((me) => {
+  if (me.guest) { document.body.classList.add("guest"); guestBadge.hidden = false; }
+  if (me.sandbox) { document.body.classList.add("sandbox"); demoBar.hidden = false; }
+}).catch(() => {}); // auth off or offline: nothing to show
 
 // The nav has its own socket so it works on pages that never load one. The badge follows
 // listenState, which the server sends in "state" and again whenever it changes.
@@ -75,6 +94,13 @@ function watchListening() {
   s.on("state", (st) => { owner = st.listenState ? st.listenState.owner : null; show(); if (st.mode) showMode(st.mode); });
   s.on("listenState", (st) => { owner = st.owner; show(); });
   s.on("disconnect", () => { owner = null; show(); });
+  // A guest pressed something: flash the badge so the silence makes sense
+  s.on("denied", () => {
+    guestBadge.classList.add("flash");
+    setTimeout(() => guestBadge.classList.remove("flash"), 600);
+  });
+  // The server restarted (tickets live in memory) or the cookie expired: this tab's ticket is dead
+  s.on("connect_error", (err) => { if (err.message === "Sign in first") location.href = "/login"; });
 }
 if (window.io) watchListening();
 else {

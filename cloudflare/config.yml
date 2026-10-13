@@ -7,4 +7,6 @@ protocol: http2   # the venue / home network blocks UDP, which the default (quic
 ingress:
   - hostname: show.vortigernindustries.com
     service: http://localhost:3000
+  - hostname: demo.vortigernindustries.com   # the sandbox: same app on port 3001 with SANDBOX=1, no outputs
+    service: http://localhost:3001
   - service: http_status:404

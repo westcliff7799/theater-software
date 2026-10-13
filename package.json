@@ -5,9 +5,10 @@
   "main": "main.js",
   "scripts": {
     "start": "node server.js",
+    "sandbox": "SANDBOX=1 PORT=3001 node server.js",
     "app": "electron .",
     "tunnel": "cloudflared tunnel --config cloudflare/config.yml run",
-    "deploy": "rsync -az --delete -e 'ssh -i ~/.ssh/mc_tunnel' --exclude node_modules --exclude .git --exclude cloudflare/ --exclude show.json --exclude public/audio/ --exclude '*.log' ./ raspberrypi:~/theater-software/ && ssh -i ~/.ssh/mc_tunnel raspberrypi 'cd ~/theater-software && npm install --omit=dev --no-audit --no-fund --silent && pm2 restart theater --update-env' ",
+    "deploy": "rsync -az --delete -e 'ssh -i ~/.ssh/mc_tunnel' --exclude node_modules --exclude .git --exclude cloudflare/ --exclude show.json --exclude public/audio/ --exclude '*.log' ./ raspberrypi:~/theater-software/ && ssh -i ~/.ssh/mc_tunnel raspberrypi 'cd ~/theater-software && npm install --omit=dev --no-audit --no-fund --silent && pm2 restart theater --update-env && (pm2 restart theater-sandbox --update-env || SANDBOX=1 PORT=3001 pm2 start server.js --name theater-sandbox)' ",
     "pi": "ssh -i ~/.ssh/mc_tunnel raspberrypi"
   },
   "keywords": [],
@@ -17,10 +18,13 @@
   "dependencies": {
     "@huggingface/transformers": "^4.3.1",
     "@julusian/midi": "^3.8.1",
+    "dotenv": "^18.0.7",
     "express": "^5.2.1",
+    "google-auth-library": "^11.2.0",
     "mammoth": "^1.13.0",
     "pdf-parse": "^2.4.5",
     "sacn": "^4.6.2",
+    "serialport": "^13.0.0",
     "socket.io": "^4.8.4"
   },
   "devDependencies": {

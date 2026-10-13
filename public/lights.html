@@ -122,10 +122,114 @@
     #keys .eg td:first-child { color: #fff; }
 
     /* patch table */
-    .patch { padding: 16px; }
-    .patch input, .patch select { padding: 4px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 4px; width: 100%; }
-    .patch td:last-child { width: 50px; }
-    .patch th { text-transform: none; font-size: 14px; color: #ccc; }
+    /* ---- Patch, laid out like a console patch display: table on top, Protocols / Device List pane below */
+    #patchTab.on { display: flex; flex-direction: column; overflow: hidden; background: #0d1620; }
+    .patchTable { flex: 1; overflow: auto; padding: 0 12px; } /* no top padding, so the sticky header sits flush and rows can't peek above it */
+    .patch input, .patch select { padding: 4px 8px; background: #000; color: #eee; border: 1px solid #1c2735; border-radius: 3px; width: 100%; font-size: 14px; }
+    .patch table { border-collapse: separate; border-spacing: 0; table-layout: fixed; } /* console look: black column blocks with thin row lines, navy gaps between sections */
+    .patch col.cAddr { width: 96px; } .patch col.cChan { width: 110px; } .patch col.cType { width: 210px; }
+    .patch col.cPri { width: 130px; } .patch col.cIf { width: 64px; } .patch col.cOut { width: 100px; } .patch col.cUses { width: 110px; } .patch col.cRm { width: 48px; }
+    .patch td input, .patch td select { background: transparent; border: none; padding: 2px 4px; }
+    .patch td input:focus, .patch td select:focus { outline: 1px solid var(--gold); border-radius: 2px; }
+    .patch input[type=number] { -moz-appearance: textfield; }
+    .patch input[type=number]::-webkit-inner-spin-button, .patch input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; }
+    .patch th { top: 0; z-index: 2; background: #0d1620; color: #c9d3de; text-transform: none; font-size: 15px; font-weight: normal; border-bottom: 1px solid #23313f; padding: 10px 10px; text-align: center; }
+    .patch th:nth-child(4), .patch th:nth-child(3) { text-align: left; }
+    .patch td { height: 30px; padding: 2px 10px; background: #000; border: none; border-bottom: 1px solid #1c2735; border-right: 8px solid #0d1620; box-sizing: border-box; }
+    .patch td:nth-child(2) { background: transparent; border-bottom-color: transparent; } /* Chan sits on the navy, like the console */
+    .patch td:nth-child(3), .patch td:nth-child(6), .patch td:nth-child(7) { border-right: 1px solid #1c2735; } /* Type|Label and the interface trio share a block */
+    .patch td:last-child { border-right: none; }
+    .patch td.ro { padding-left: 18px; color: #eee; font-size: 15px; }
+    .patch td.flag { text-align: center; color: #ddd; font-size: 16px; width: 44px; user-select: none; }
+    .patch td.out { text-align: center; color: var(--gold); font-family: Menlo, monospace; font-size: 15px; }
+    .patch td:first-child input { font-size: 16px; font-weight: bold; padding: 6px 10px; }
+    .patch td:last-child button { padding: 2px 8px; }
+    /* sections: channel · fixture · priority + interface · output · uses */
+    /* section dividers drawn in the gap: Chan|Type, Label|Priority, ArtNet|Output, Output|Uses */
+    .patch td:nth-child(3), .patch td:nth-child(5), .patch td:nth-child(9), .patch td:nth-child(10) { position: relative; } /* th stays sticky, which is positioned too */
+    .patch td:nth-child(3)::before, .patch td:nth-child(5)::before, .patch td:nth-child(9)::before, .patch td:nth-child(10)::before {
+      content: ""; position: absolute; left: -5px; top: 0; bottom: -1px; width: 1px; background: #2f4157; }
+    .patch th:nth-child(2), .patch th:nth-child(4), .patch th:nth-child(8), .patch th:nth-child(9) { box-shadow: inset -4px 0 0 0 #0d1620, inset -5px 0 0 0 #2f4157; } /* header: a 5px line band with a 4px gap-coloured band over it = 1px line exactly where the row lines are */
+    .patch .interface { text-align: center; }
+    .patch p { padding: 10px 0; margin: 0; }
+    .patchPane { height: 250px; flex: none; display: flex; border-top: 2px solid var(--blue); background: #000; }
+    .pnav { width: 150px; display: flex; flex-direction: column; border-right: 1px solid #1c2735; background: #0d1620; }
+    .pnav button { background: none; border: none; border-bottom: 1px solid #1c2735; border-radius: 0; color: #9fb0c3; text-align: left; padding: 14px 12px; font-size: 14px; }
+    .pnav button.on { color: #fff; font-weight: bold; }
+    .pnav button.on::after { content: "›"; float: right; color: var(--gold); font-size: 18px; line-height: 14px; }
+    .pane { display: none; flex: 1; overflow: auto; padding: 12px 16px; color: #ddd; font-size: 14px; }
+    .pane.on { display: block; }
+    .ptabs { display: flex; gap: 2px; margin-bottom: 12px; }
+    .ptabs button { background: #0d1620; border: 1px solid #23313f; border-radius: 0; color: #9fb0c3; min-width: 150px; padding: 8px 14px; }
+    .ptabs button.on { color: #fff; border-color: var(--gold); border-bottom-color: #000; }
+    .proto { display: none; } .proto.on { display: block; }
+    .proto h4, .pane h4 { color: var(--gold); margin: 0 0 10px; font-size: 15px; }
+    .fields { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px 24px; max-width: 760px; }
+    .fields label { display: block; color: #fff; font-weight: bold; font-size: 13px; margin-bottom: 4px; }
+    .fields input, .fields select { width: 100%; padding: 6px 8px; background: #0d1620; color: #eee; border: 1px solid #23313f; border-radius: 3px; font-size: 14px; }
+    .fields label.toggle, .toggle { display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: normal; margin: 0; }
+    .toggle input { display: none; }
+    .toggle span { width: 46px; height: 24px; border-radius: 12px; border: 2px solid #4a5563; background: #111; position: relative; flex: none; }
+    .toggle span::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: #666; }
+    .toggle input:checked + span { border-color: var(--gold); }
+    .toggle input:checked + span::after { background: var(--gold); left: 25px; }
+    .toggle b { font-weight: normal; color: #ddd; }
+    .pane .note { color: #9fb0c3; margin: 10px 0 0; }
+    #paneInfo.on { display: flex; gap: 16px; padding: 8px 12px; }
+    .addrMap { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+    .addrGrid { flex: 1; min-height: 0; overflow: auto; display: grid; grid-template-columns: repeat(32, minmax(22px, 1fr)); gap: 1px; align-content: start; font-size: 11px; font-weight: bold; } /* never narrower than its numbers: a small window scrolls the map instead of spilling it under the inspector */
+    .addrGrid .a { text-align: center; line-height: 11px; padding: 0; color: #5d6b7a; cursor: pointer; border-radius: 2px; }
+    .addrGrid .a.used { color: #fff; background: #152030; }
+    .addrGrid .a.sel { color: #000; background: var(--gold); }
+    .addrGrid .a:hover { outline: 1px solid var(--gold); }
+    .addrNav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding-top: 6px; color: #c9d3de; font-size: 13px; }
+    .addrNav button { padding: 2px 12px; font-size: 16px; line-height: 16px; }
+    .addrNav b { min-width: 32px; text-align: center; color: var(--gold); font-size: 15px; }
+    .addrNav #patchSummary { margin-left: auto; color: #9fb0c3; }
+    .patchInsp { flex: 0 1 470px; min-width: 300px; border-left: 1px solid #1c2735; padding-left: 16px; position: relative; } /* gives up some width in a small window, down to 300px */
+    .patchInsp .fields { grid-template-columns: 1fr 1fr 1fr; gap: 6px 12px; }
+    .patchInsp .fields label { margin-bottom: 2px; }
+    .patchInsp .fields input, .patchInsp .fields select { padding: 4px 6px; }
+    #inspType { cursor: pointer; color: #cfe3ff; }
+    #inspType:hover { border-color: var(--gold); }
+    /* fixture picker: manufacturers down the left, that maker's models in a grid, like a console's type picker */
+    .picker { position: fixed; inset: 50px 6%; z-index: 20; display: none; flex-direction: column; background: #0b1220; border: 1px solid var(--gold); border-radius: 6px; box-shadow: 0 10px 40px #000; }
+    .picker.on { display: flex; }
+    .pickHead { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-bottom: 1px solid #23313f; }
+    .pickHead b { color: var(--gold); font-size: 15px; }
+    .pickHead input { width: 320px; padding: 6px 10px; background: #000; color: #eee; border: 1px solid #2f4157; border-radius: 3px; font-size: 14px; }
+    .pickHead span { flex: 1; color: #9fb0c3; font-size: 14px; }
+    .pickBody { flex: 1; display: flex; min-height: 0; }
+    .pickCol { width: 330px; flex: none; display: flex; flex-direction: column; border-right: 1px solid #23313f; padding: 12px; }
+    .pickMain { flex: 1; display: flex; flex-direction: column; padding: 12px; min-width: 0; }
+    .tiles { flex: 1; display: grid; grid-template-columns: repeat(2, 1fr); grid-auto-rows: 58px; gap: 6px; align-content: start; overflow: hidden; }
+    .tiles.wide { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+    .tile { display: flex; align-items: center; justify-content: center; text-align: center; padding: 4px 8px; background: #0d1620; border: 1px solid #2f4157; border-radius: 3px; color: #8fc1ff; font-size: 14px; cursor: pointer; line-height: 1.2; overflow: hidden; }
+    .tile.plain { color: #eee; }
+    .tile.on { border-color: var(--gold); color: #fff; }
+    .tile:hover { background: #122033; }
+    .tile.back { color: var(--gold); }
+    .pager { display: flex; align-items: center; justify-content: center; gap: 12px; padding-top: 10px; color: #9fb0c3; font-size: 13px; }
+    .pager button { padding: 4px 14px; font-family: Menlo, monospace; }
+    .patchInsp input[readonly] { color: #9fb0c3; }
+    .patchInsp .inspActions { display: flex; align-items: center; gap: 10px; margin-top: 12px; }
+    .patchInsp .inspActions .note { flex: 1; margin: 0; }
+    .patch td.addr { font-weight: bold; font-size: 16px; }
+    .patch td.chan b { font-size: 16px; } .patch td.chan span { float: right; color: #9fb0c3; font-weight: bold; }
+    .patch td.dim { color: #7f8c99; }
+    .patch td.ro { white-space: nowrap; overflow: clip; overflow-clip-margin: 6px; text-overflow: ellipsis; } /* clip long text, but not the section divider drawn 5px outside the cell */
+    .patch tr.free td { cursor: pointer; }
+    .patch tr.free:hover td { background: #0a121c; }
+    .patch tr.sel td { box-shadow: inset 0 0 0 1px var(--gold); }
+    .patch tr.sel td:nth-child(2) { box-shadow: none; }
+    .pane table td, .pane table th { padding: 4px 10px; border: none; background: none; font-size: 13px; }
+    .pane table th { position: static; background: none; color: var(--gold); text-transform: none; }
+    /* Patch is blind too: same blue look, no cue needed, and the Selected panel gets out of the way */
+    body.patchmode { --mode: var(--blue); }
+    body.patchmode .left { box-shadow: inset 0 0 0 2px var(--blue); }
+    body.onpatch main { grid-template-columns: 1fr; }
+    body.onpatch .inspector { display: none; }
+    body.onpatch .playback { display: none; } /* the cue strip is for Live: Patch needs the room */
 
     /* command line */
     .cmd { display: flex; gap: 10px; align-items: center; padding: 8px 12px; background: #000; border-top: 1px solid #222; }
@@ -212,11 +316,90 @@
       </div>
 
       <div class="tab patch" id="patchTab">
-        <table>
-          <thead><tr><th>Chan</th><th>Address</th><th>Type</th><th>Label</th><th>Uses</th><th></th></tr></thead>
-          <tbody id="patchRows"></tbody>
-        </table>
-        <p><button id="addFixture">+ Add fixture</button></p>
+        <div class="patchTable">
+          <table>
+            <colgroup><col class="cAddr"><col class="cChan"><col class="cType"><col><col class="cPri"><col class="cIf"><col class="cIf"><col class="cIf"><col class="cOut"><col class="cUses"><col class="cRm"></colgroup>
+            <thead>
+              <tr><th>Chan</th><th>Address</th><th>Type</th><th>Label</th><th>sACN Priority</th><th class="interface">sACN</th><th class="interface">DMX</th><th class="interface">ArtNet</th><th>Output</th><th>Uses</th><th></th></tr>
+            </thead>
+            <tbody id="patchRows"></tbody>
+          </table>
+          <p><button id="addFixture">+ Add fixture</button></p>
+        </div>
+        <div class="patchPane">
+          <nav class="pnav">
+            <button class="on" data-pane="paneInfo">Patch</button>
+            <button data-pane="paneProto">Protocols</button>
+            <button data-pane="paneDevices">Device List</button>
+          </nav>
+          <div class="pane on" id="paneInfo">
+            <div class="addrMap">
+              <div class="addrGrid" id="addrGrid"></div>
+              <div class="addrNav">
+                <span>Output</span>
+                <button id="outPrev" title="Previous output">‹</button><b id="outNum">1</b><button id="outNext" title="Next output">›</button>
+                <span id="addrRange"></span>
+                <span id="patchSummary"></span>
+              </div>
+            </div>
+            <div class="patchInsp" id="patchInsp">
+              <div class="fields">
+                <div style="grid-column: span 2"><label>Type</label><input id="inspType" readonly title="Click to choose a fixture" placeholder="Click to choose…"></div>
+                <div><label>Mode</label><select id="inspMode"></select></div>
+                <div><label>Label</label><input data-i="name"></div>
+                <div><label>Channel</label><input data-i="chan" type="number" min="1"></div>
+                <div><label>Address</label><input data-i="address" type="number" min="1" max="512" title="Blank: the address follows the channel number. Type one to override."></div>
+                <div><label>Output (universe)</label><input data-i="universe" type="number" min="1" max="63999"></div>
+                <div><label>Interface</label><input id="inspIface" readonly></div>
+              </div>
+              <div class="inspActions">
+                <span class="note" id="inspNote"></span>
+                <button id="patchHere" style="display:none">New fixture here</button>
+                <button id="flashBtn" title="Light this fixture for a second so you can find it">Flash</button>
+              </div>
+            </div>
+          </div>
+          <div class="pane" id="paneProto">
+            <div class="ptabs">
+              <button class="on" data-proto="sacn">sACN</button>
+              <button data-proto="artnet">ArtNet</button>
+              <button data-proto="dmx">Local DMX</button>
+            </div>
+            <div class="proto on" id="proto-sacn">
+              <h4>Global</h4>
+              <div class="fields">
+                <div><label>Enabled Protocol</label><label class="toggle"><input type="checkbox" data-p="sacn.enabled"><span></span><b></b></label></div>
+                <div><label>Start Universe</label><input type="number" min="1" max="63999" data-p="sacn.startUniverse"></div>
+                <div><label>Output Priority</label><input type="number" min="1" max="200" data-p="sacn.priority"></div>
+              </div>
+              <p class="note">Multicast on every network card. Output 1 goes to the start universe, Output 2 to the next, and so on. Priority is per universe, so fixtures sharing one get the highest set among them.</p>
+            </div>
+            <div class="proto" id="proto-artnet">
+              <h4>Global</h4>
+              <div class="fields">
+                <div><label>Enabled Protocol</label><label class="toggle"><input type="checkbox" data-p="artnet.enabled"><span></span><b></b></label></div>
+                <div><label>Start Universe</label><input type="number" min="0" max="32767" data-p="artnet.startUniverse"></div>
+              </div>
+              <p class="note">Broadcast on every network card. ArtNet counts universes from 0, so Output 1 goes to the start universe. Fixtures need their ArtNet ✱ on.</p>
+            </div>
+            <div class="proto" id="proto-dmx">
+              <h4>Global</h4>
+              <div class="fields">
+                <div><label>Enabled Protocol</label><label class="toggle"><input type="checkbox" data-p="dmx.enabled"><span></span><b></b></label></div>
+                <div><label>Interface Type</label><select data-p="dmx.kind"><option value="pro">Enttec DMX USB Pro / DMXking</option><option value="open">Open DMX (FTDI)</option></select></div>
+                <div><label>Port</label><select data-p="dmx.port" id="dmxPortSel"></select></div>
+                <div><label>&nbsp;</label><button id="refreshPorts">Refresh ports</button></div>
+              </div>
+              <p class="note" id="dmxStatus"></p>
+            </div>
+          </div>
+          <div class="pane" id="paneDevices">
+            <h4>Network cards</h4>
+            <table><tbody id="ifaceRows"></tbody></table>
+            <h4 style="margin-top:14px">Serial ports</h4>
+            <table><tbody id="serialRows"></tbody></table>
+          </div>
+        </div>
       </div>
 
       <div class="tab ds" id="dsTab">
@@ -244,6 +427,24 @@
       </div>
     </div>
 
+    <div id="fixPicker" class="picker">
+      <div class="pickHead">
+        <b>Fixture type</b>
+        <input id="pickSearch" placeholder="Search manufacturer or model">
+        <span id="pickCrumb"></span>
+        <button id="pickClose" title="Esc">✕</button>
+      </div>
+      <div class="pickBody">
+        <div class="pickCol">
+          <div class="tiles" id="pickMakes"></div>
+          <div class="pager"><button data-pg="m-">&lt;&lt;</button><span id="pickMakePg"></span><button data-pg="m+">&gt;&gt;</button></div>
+        </div>
+        <div class="pickMain">
+          <div class="tiles wide" id="pickModels"></div>
+          <div class="pager"><button data-pg="f-">&lt;&lt;</button><span id="pickModelPg"></span><button data-pg="f+">&gt;&gt;</button></div>
+        </div>
+      </div>
+    </div>
     <aside class="inspector" data-edit-only>
       <h3>Selected</h3>
       <div class="who" id="who"></div>
@@ -335,18 +536,29 @@
     let master = 255, beforeBlackout = 255;
 
     // ---- reading a fixture out of the raw DMX array
-    const hasColor = (f) => "r" in TYPES[f.type];
-    const hasDimmer = (f) => "i" in TYPES[f.type];
-    const chan = (f, key) => view()[f.address - 1 + TYPES[f.type][key]] ?? 0;
+    // A fixture's channel layout. Library fixtures carry their own profile { make, model, mode, ch, i, r, g, b, w };
+    // the built-in generics come from TYPES above.
+    const T = (f) => f.profile || TYPES[f.type] || { ch: f.ch || 1, i: 0 };
+    const typeName = (f) => f.profile ? `${f.profile.model} · ${f.profile.mode}` : f.type;
+    const GENERIC = "Generic";
+    let lib = { [GENERIC]: { Dimmer: { "1 channel": "dimmer" }, RGB: { "3 channel": "rgb" }, RGBW: { "4 channel": "rgbw" }, "Dimmer + RGB": { "4 channel": "irgb" } } };
+    fetch("/fixtures.json").then((r) => (r.ok ? r.json() : {})).then((data) => {
+      for (const [make, models] of Object.entries(data)) lib[make] = { ...(lib[make] || {}), ...models }; // the library's own "Generic" joins ours
+      paintPatchPane();
+    }).catch(() => {});
+    const hasColor = (f) => "r" in T(f);
+    const hasDimmer = (f) => "i" in T(f);
+    const chan = (f, key) => view()[f.address - 1 + T(f)[key]] ?? 0;
 
     function level(i) {
       const f = patch[i];
+      if (!f) return 0; // empty channel
       if (hasDimmer(f)) return chan(f, "i");
       return Math.max(chan(f, "r"), chan(f, "g"), chan(f, "b"));
     }
     function color(i) {
       const f = patch[i];
-      if (!hasColor(f)) return null;
+      if (!f || !hasColor(f)) return null;
       const raw = { r: chan(f, "r"), g: chan(f, "g"), b: chan(f, "b") };
       if (hasDimmer(f)) { // colour channels hold the colour itself; all zero means "no colour picked yet"
         if (raw.r || raw.g || raw.b) return raw;
@@ -359,14 +571,14 @@
 
     // ---- writing: turn "this fixture at this level and colour" into channel numbers
     function channelsFor(i, lv, c) {
-      const f = patch[i], T = TYPES[f.type], out = {};
-      if (hasDimmer(f)) out[f.address + T.i] = lv;
+      const f = patch[i], P = T(f), out = {};
+      if (hasDimmer(f)) out[f.address + P.i] = lv;
       if (hasColor(f)) {
         const scale = hasDimmer(f) ? 1 : lv / 255; // no dimmer channel: brightness lives in the colour channels
-        out[f.address + T.r] = Math.round(c.r * scale);
-        out[f.address + T.g] = Math.round(c.g * scale);
-        out[f.address + T.b] = Math.round(c.b * scale);
-        if ("w" in T) out[f.address + T.w] = Math.round(Math.min(c.r, c.g, c.b) * scale);
+        out[f.address + P.r] = Math.round(c.r * scale);
+        out[f.address + P.g] = Math.round(c.g * scale);
+        out[f.address + P.b] = Math.round(c.b * scale);
+        if ("w" in P) out[f.address + P.w] = Math.round(Math.min(c.r, c.g, c.b) * scale);
       }
       return out;
     }
@@ -384,6 +596,7 @@
       const box = $("stage");
       box.querySelectorAll(".fx").forEach((e) => e.remove());
       patch.forEach((f, i) => {
+        if (!f) return; // empty channel
         const el = document.createElement("div");
         el.className = "fx";
         el.id = "fx" + i;
@@ -395,7 +608,7 @@
     }
     function paintStage() {
       patch.forEach((f, i) => {
-        const el = $("fx" + i);
+        const el = f && $("fx" + i);
         if (!el) return;
         const lv = level(i), c = color(i) || { r: 255, g: 225, b: 170 }; // plain dimmers glow warm white
         el.style.left = (f.x ?? 50) + "%";
@@ -439,6 +652,7 @@
       const body = $("liveRows");
       body.innerHTML = "";
       patch.forEach((f, i) => {
+        if (!f) return; // empty channel
         const tr = document.createElement("tr");
         tr.className = "cue";
         tr.id = "live" + i;
@@ -458,7 +672,7 @@
       patch.forEach((f, i) => {
         const tr = $("live" + i);
         if (!tr) return;
-        const T = TYPES[f.type], lv = level(i), c = color(i);
+        const P = T(f), lv = level(i), c = color(i);
         const cells = tr.querySelectorAll("td.val");
         const show = (cell, v) => { // a blank cell means the fixture has no such parameter
           cell.textContent = v === null ? "" : pct(v);
@@ -468,7 +682,7 @@
         show(cells[1], c ? chan(f, "r") : null);
         show(cells[2], c ? chan(f, "g") : null);
         show(cells[3], c ? chan(f, "b") : null);
-        show(cells[4], "w" in T ? chan(f, "w") : null);
+        show(cells[4], "w" in P ? chan(f, "w") : null);
         const glow = c || { r: 255, g: 225, b: 170 };
         tr.querySelector("td.swatch div").style.background = `rgb(${glow.r * lv / 255 | 0}, ${glow.g * lv / 255 | 0}, ${glow.b * lv / 255 | 0})`;
         tr.classList.toggle("sel", selected.has(i));
@@ -500,7 +714,7 @@
 
     // ---- channel grid: one box per channel, level under the number
     function buildGrid() {
-      const box = $("grid"), n = Math.max(48, Math.ceil(patch.length / 24) * 24); // whole rows of 24
+      const box = $("grid"), n = patch.length; // up to the last patched channel, empty ones included
       box.innerHTML = "";
       for (let i = 0; i < n; i++) {
         const cell = document.createElement("div");
@@ -519,7 +733,7 @@
       [...$("grid").children].forEach((cell, i) => {
         const f = patch[i], own = f ? level(i) : 0;
         // In Live, a fader can lift a channel above its cue level: show what really goes out, in amber
-        const lifted = f && !inBlind() ? (hasDimmer(f) ? faderLevel(f.address + TYPES[f.type].i) : Math.max(...dmxOf(i).map(faderLevel))) : 0;
+        const lifted = f && !inBlind() ? (hasDimmer(f) ? faderLevel(f.address + T(f).i) : Math.max(...dmxOf(i).map(faderLevel))) : 0;
         const lv = Math.max(own, lifted);
         cell.classList.toggle("patched", !!f);
         cell.classList.toggle("sel", selected.has(i));
@@ -532,7 +746,7 @@
     // Why a channel is at its level: manual (by hand), up / down (the last cue moved it) or tracked (from earlier)
     function markOf(i) {
       const f = patch[i];
-      const chans = hasDimmer(f) ? [f.address + TYPES[f.type].i] : dmxOf(i); // the brightness channel decides
+      const chans = hasDimmer(f) ? [f.address + T(f).i] : dmxOf(i); // the brightness channel decides
       let m = "tracked";
       for (const ch of chans) {
         if (inBlind()) { if (blindMoves[ch]) m = blindMoves[ch]; continue; } // Blind: what the open cue changes
@@ -542,43 +756,342 @@
       return m;
     }
     // ---- patch table
+    let protocols = { sacn: { enabled: true, startUniverse: 1, priority: 100 }, artnet: { enabled: false, startUniverse: 0 }, dmx: { enabled: false, port: "", kind: "pro" } };
+    let outputs = { ifaces: [], dmxPort: "", serial: false };
+    let patchSel = -1, patchOut = 1; // the row the inspector shows, and the output the address map shows
+    let patchAddr = 0;          // the empty address picked on the map (0 = none)
+    // A fixture's address follows its channel (channel 11 = address 11) unless it was set by hand (addrFixed).
+    const autoAddr = (f, i) => !f.addrFixed && f.address === i + 1;
+    const flagCell = (k, on) => `<td class="flag" title="Set in Protocols, below">${on ? "✱" : ""}</td>`; // read-only: which outputs are enabled
+    // The editable cells of a fixture, Type through Remove. Both views use them.
+    function fixtureCells(f, i) {
+      return `<td class="ro">${typeName(f)}</td>
+          <td><input data-k="name"></td>
+          <td><input data-k="priority" type="number" min="1" max="200" placeholder="${protocols.sacn.priority}"></td>
+          ${flagCell("sacn", protocols.sacn.enabled)}${flagCell("dmx", protocols.dmx.enabled)}${flagCell("artnet", protocols.artnet.enabled)}
+          <td class="out" data-out="${i}" title="What this light is putting out right now, 0-255"></td>
+          <td>${f.address} to ${f.address + T(f).ch - 1}</td>
+          <td><button title="Remove">✕</button></td>`;
+    }
+    function wireRow(tr, f, i) {
+      for (const inp of tr.querySelectorAll("[data-k]")) {
+        inp.value = f[inp.dataset.k] ?? (inp.dataset.k === "universe" ? 1 : "");
+        inp.onchange = () => {
+          f[inp.dataset.k] = inp.type === "number" ? Number(inp.value) : inp.value;
+          f.address = Math.max(1, Math.min(512 - T(f).ch + 1, f.address || 1));
+          socket.emit("savePatch", patch);
+        };
+      }
+      tr.classList.toggle("sel", i === patchSel);
+      tr.onclick = (e) => { if (!e.target.closest("button")) selectRow(i); };
+      tr.querySelector("button").onclick = () => {
+        selected.clear();
+        socket.emit("removeFixture", i + 1); // the server also renumbers groups and palettes
+      };
+    }
+    function ownersOn(out) { // which fixture (index) sits on each address of an output, -1 for none
+      const owner = new Array(513).fill(-1);
+      for (const [k, x] of patch.entries()) if (x && (x.universe || 1) === out)
+        for (let i = 0; i < T(x).ch; i++) if (x.address + i <= 512) owner[x.address + i] = k;
+      return owner;
+    }
+    // The patch table: one row per channel, like a console. Empty channels show just their number; click one
+    // and the inspector offers to patch a fixture there. The Address column is dim while it follows the channel.
     function buildPatch() {
       const body = $("patchRows");
       body.innerHTML = "";
-      patch.forEach((f, i) => {
-        const tr = document.createElement("tr");
-        tr.innerHTML = `<td>${i + 1}</td>
-          <td><input data-k="address" type="number" min="1" max="512"></td>
-          <td><select data-k="type">${Object.keys(TYPES).map((t) => `<option>${t}</option>`).join("")}</select></td>
-          <td><input data-k="name"></td>
-          <td>${f.address} to ${f.address + TYPES[f.type].ch - 1}</td>
-          <td><button title="Remove">✕</button></td>`;
-        for (const inp of tr.querySelectorAll("[data-k]")) {
-          inp.value = f[inp.dataset.k];
-          inp.onchange = () => {
-            f[inp.dataset.k] = inp.type === "number" ? Number(inp.value) : inp.value;
-            f.address = Math.max(1, Math.min(512 - TYPES[f.type].ch + 1, f.address || 1));
+      const n = Math.max(512, patch.length); // every channel, like a console; the Live grid only shows the patched ones
+      for (let ch = 1; ch <= n; ch++) {
+        const f = patch[ch - 1], tr = document.createElement("tr");
+        if (!f) {
+          tr.innerHTML = `<td class="ro addr">${ch}</td>` + "<td></td>".repeat(10);
+          tr.classList.add("free");
+          tr.classList.toggle("sel", patchSel === ch - 1);
+          tr.onclick = () => selectRow(ch - 1);
+        } else {
+          const auto = autoAddr(f, ch - 1);
+          tr.innerHTML = `<td class="ro addr">${ch}</td>
+            <td class="ro${auto ? " dim" : ""}" title="${auto ? "Follows the channel. Type an address in the Patch pane below to override." : "Set by hand in the Patch pane below"}">${f.universe || 1}/${f.address}</td>` + fixtureCells(f, ch - 1);
+          wireRow(tr, f, ch - 1);
+        }
+        body.appendChild(tr);
+      }
+      if (patchSel >= n) patchSel = n - 1;
+      paintPatchPane();
+    }
+    function selectRow(i) {
+      if (patchSel === i && !patchAddr) return;
+      patchSel = i; patchAddr = 0;
+      patchOut = patch[i]?.universe || patchOut; // the map follows the row
+      markRows();
+      paintPatchPane();
+    }
+    function selectAddr(a, out = patchOut) { // an empty address
+      patchSel = -1; patchAddr = a; patchOut = out;
+      markRows();
+      paintPatchPane();
+    }
+    function markRows() {
+      const rows = [...$("patchRows").children];
+      rows.forEach((tr, k) => tr.classList.toggle("sel", k === patchSel)); // row k is channel k + 1
+      if (rows[patchSel]) rows[patchSel].scrollIntoView({ block: "nearest" });
+    }
+    // ---- Patch pane: the 512 addresses of one output, lit where fixtures sit, and the selected row's details
+    function paintPatchPane() {
+      const f = patch[patchSel];
+      const owner = ownersOn(patchOut);
+      const grid = $("addrGrid");
+      if (grid.children.length !== 512) {
+        grid.innerHTML = "";
+        for (let a = 1; a <= 512; a++) {
+          const d = document.createElement("div");
+          d.className = "a"; d.textContent = a;
+          d.onclick = () => { // repatch the selected row here, or pick this address if no row is selected
+            const sel = patch[patchSel];
+            if (!sel) return selectAddr(a);
+            sel.address = Math.min(a, 512 - T(sel).ch + 1);
+            sel.universe = patchOut;
+            if (sel.address === patchSel + 1) delete sel.addrFixed; else sel.addrFixed = true;
             socket.emit("savePatch", patch);
           };
+          grid.appendChild(d);
         }
-        tr.querySelector("button").onclick = () => {
-          selected.clear();
-          socket.emit("removeFixture", i + 1); // the server also renumbers groups and palettes
-        };
-        body.appendChild(tr);
-      });
+      }
+      for (let a = 1; a <= 512; a++) {
+        const d = grid.children[a - 1];
+        d.classList.toggle("used", owner[a] >= 0 && owner[a] !== patchSel);
+        d.classList.toggle("sel", patchSel >= 0 ? owner[a] === patchSel : patchAddr === a);
+      }
+      const used = owner.filter((o) => o >= 0).length;
+      $("outNum").textContent = patchOut;
+      $("addrRange").textContent = `Output ${patchOut}: addresses 1 to 512 · ${512 - used} free`;
+      paintTypePicker(f);
+      for (const el of $("patchInsp").querySelectorAll("[data-i]")) {
+        el.disabled = !f;
+        el.placeholder = "";
+        if (!f) { el.value = ""; continue; }
+        if (el.dataset.i === "chan") el.value = patchSel + 1;
+        else if (el.dataset.i === "address") { el.value = autoAddr(f, patchSel) ? "" : f.address; el.placeholder = patchSel + 1; } // blank = follows the channel
+        else el.value = f[el.dataset.i] ?? (el.dataset.i === "universe" ? 1 : "");
+      }
+      $("inspIface").value = f ? [protocols.sacn.enabled && "sACN", protocols.dmx.enabled && "DMX", protocols.artnet.enabled && "ArtNet"].filter(Boolean).join(" ") || "none" : "";
+      $("inspNote").textContent = f ? `Uses ${f.address} to ${f.address + T(f).ch - 1} on output ${f.universe || 1}${autoAddr(f, patchSel) ? " · address follows the channel" : ""}`
+        : patchAddr ? `Address ${patchOut}/${patchAddr} is free` : patchSel >= 0 ? `Channel ${patchSel + 1} is empty` : "Click a channel, or an address on the map";
+      $("flashBtn").disabled = !f && !patchAddr && patchSel < 0; // a free address or empty channel can be flashed too
+      $("patchHere").style.display = !f && (patchAddr || patchSel >= 0) ? "" : "none";
     }
-    $("addFixture").onclick = () => {
-      const last = patch[patch.length - 1];
-      patch.push({
-        name: "Fixture " + (patch.length + 1),
-        type: "dimmer",
-        address: last ? last.address + TYPES[last.type].ch : 1, // next free address after the last fixture
-        x: 10 + (patch.length * 11) % 80,
-        y: 60,
-      });
+    // ---- fixture type. Library fixtures carry a profile; generics map to TYPES. The inspector shows
+    // "Make · Model" and a Mode select; clicking the type opens the tile picker.
+    const makeOf = (f) => f?.profile ? f.profile.make : GENERIC;
+    const modelOf = (f) => f?.profile ? f.profile.model : Object.keys(lib[GENERIC]).find((m) => Object.values(lib[GENERIC][m]).includes(f?.type)) || "Dimmer";
+    const modeOf = (f) => f?.profile ? f.profile.mode : Object.keys(lib[GENERIC][modelOf(f)] || {})[0];
+    function paintTypePicker(f) {
+      $("inspType").value = f ? `${makeOf(f)} · ${modelOf(f)}` : "";
+      const sel = $("inspMode");
+      sel.innerHTML = "";
+      for (const m of Object.keys(lib[makeOf(f)]?.[modelOf(f)] || {})) sel.add(new Option(m, m));
+      sel.value = modeOf(f) || "";
+      $("inspType").disabled = $("inspMode").disabled = !f;
+    }
+    function setType(f, make, model, mode) {
+      const spec = lib[make]?.[model]?.[mode];
+      if (!f || !spec) return;
+      if (make === GENERIC && typeof spec === "string") { f.type = spec; delete f.profile; }
+      else { f.type = "lib"; f.profile = { make, model, mode, ...spec }; }
+      f.address = Math.max(1, Math.min(512 - T(f).ch + 1, f.address || 1));
+      socket.emit("savePatch", patch);
+    }
+    $("inspMode").onchange = (e) => { const f = patch[patchSel]; setType(f, makeOf(f), modelOf(f), e.target.value); e.target.blur(); };
+
+    // ---- the tile picker
+    const pk = { make: GENERIC, model: null, q: "", makePage: 0, modelPage: 0, perMakes: 12, perModels: 40 };
+    const pickMatch = (name) => name.toLowerCase().includes(pk.q);
+    function openPicker() {
+      const f = patch[patchSel];
+      if (!f) return;
+      pk.make = makeOf(f); pk.model = null; pk.q = ""; pk.makePage = pk.modelPage = 0;
+      $("pickSearch").value = "";
+      $("fixPicker").classList.add("on");
+      renderPicker();
+      $("pickSearch").focus();
+    }
+    function closePicker() { $("fixPicker").classList.remove("on"); }
+    function renderPicker() {
+      // as many tiles per page as fit the space
+      const rows = (el) => Math.max(1, Math.floor(el.clientHeight / 64));
+      pk.perMakes = rows($("pickMakes")) * 2;
+      pk.perModels = rows($("pickModels")) * Math.max(1, Math.floor($("pickModels").clientWidth / 156));
+      // manufacturers: those whose name or any model matches the search
+      const makes = Object.keys(lib)
+        .filter((m) => !pk.q || pickMatch(m) || Object.keys(lib[m]).some(pickMatch))
+        .sort((a, b) => (a === GENERIC ? -1 : b === GENERIC ? 1 : a.localeCompare(b)));
+      if (!makes.includes(pk.make)) { pk.make = makes[0]; pk.model = null; }
+      const mPages = Math.max(1, Math.ceil(makes.length / pk.perMakes));
+      pk.makePage = Math.min(pk.makePage, mPages - 1);
+      const tileList = (el, items, cls, on, click) => {
+        el.innerHTML = "";
+        for (const it of items) {
+          const d = document.createElement("div");
+          d.className = "tile " + cls + (on(it) ? " on" : "");
+          d.textContent = it.label ?? it;
+          d.onclick = () => click(it);
+          el.appendChild(d);
+        }
+      };
+      tileList($("pickMakes"), makes.slice(pk.makePage * pk.perMakes, (pk.makePage + 1) * pk.perMakes), "plain", (m) => m === pk.make,
+        (m) => { pk.make = m; pk.model = null; pk.modelPage = 0; renderPicker(); });
+      $("pickMakePg").textContent = `${pk.makePage + 1} / ${mPages}`;
+      // models of that maker, or the modes of the chosen model
+      if (pk.model) {
+        const modes = Object.keys(lib[pk.make][pk.model]);
+        tileList($("pickModels"), [{ label: "‹ back", back: true }, ...modes.map((m) => ({ label: m, mode: m }))], "", () => false,
+          (it) => { if (it.back) { pk.model = null; return renderPicker(); } setType(patch[patchSel], pk.make, pk.model, it.mode); closePicker(); });
+        $("pickModelPg").textContent = "";
+        $("pickCrumb").textContent = `${pk.make} › ${pk.model} › choose a mode`;
+      } else {
+        const models = Object.keys(lib[pk.make] || {}).filter((m) => !pk.q || pickMatch(m) || pickMatch(pk.make)).sort((a, b) => a.localeCompare(b));
+        const fPages = Math.max(1, Math.ceil(models.length / pk.perModels));
+        pk.modelPage = Math.min(pk.modelPage, fPages - 1);
+        const f = patch[patchSel];
+        tileList($("pickModels"), models.slice(pk.modelPage * pk.perModels, (pk.modelPage + 1) * pk.perModels), "", (m) => f && makeOf(f) === pk.make && modelOf(f) === m,
+          (m) => {
+            const modes = Object.keys(lib[pk.make][m]);
+            if (modes.length === 1) { setType(patch[patchSel], pk.make, m, modes[0]); return closePicker(); }
+            pk.model = m; renderPicker();
+          });
+        $("pickModelPg").textContent = `${pk.modelPage + 1} / ${fPages} · ${models.length} models`;
+        $("pickCrumb").textContent = pk.make;
+      }
+    }
+    $("inspType").onclick = openPicker;
+    $("pickClose").onclick = closePicker;
+    $("pickSearch").oninput = (e) => { pk.q = e.target.value.trim().toLowerCase(); pk.makePage = pk.modelPage = 0; pk.model = null; renderPicker(); };
+    $("pickSearch").onkeydown = (e) => { if (e.key === "Escape") closePicker(); e.stopPropagation(); };
+    for (const b of document.querySelectorAll(".pager button")) b.onclick = () => {
+      const [what, dir] = [b.dataset.pg[0], b.dataset.pg[1] === "+" ? 1 : -1];
+      if (what === "m") pk.makePage = Math.max(0, pk.makePage + dir); else pk.modelPage = Math.max(0, pk.modelPage + dir);
+      renderPicker();
+      b.blur();
+    };
+    for (const el of $("patchInsp").querySelectorAll("[data-i]")) el.onchange = () => {
+      const f = patch[patchSel];
+      if (!f) return;
+      if (el.dataset.i === "chan") { socket.emit("moveFixture", { from: patchSel + 1, to: Number(el.value) }); patchSel = Math.max(0, Number(el.value) - 1); return; }
+      if (el.dataset.i === "address") {
+        if (el.value === "") { delete f.addrFixed; f.address = patchSel + 1; } // blank: follow the channel again
+        else { f.addrFixed = true; f.address = Number(el.value); }
+      } else f[el.dataset.i] = el.type === "number" ? Number(el.value) : el.value;
+      f.address = Math.max(1, Math.min(512 - T(f).ch + 1, f.address || 1));
+      if (el.dataset.i === "universe") patchOut = f.universe || 1;
       socket.emit("savePatch", patch);
     };
+    const showOutput = (n) => { patchOut = Math.max(1, n); patchAddr = 0; buildPatch(); };
+    $("outPrev").onclick = (e) => { showOutput(patchOut - 1); e.target.blur(); };
+    $("outNext").onclick = (e) => { showOutput(patchOut + 1); e.target.blur(); };
+    // Flash: light whatever is selected at full for a second, so you can find it on the rig.
+    let flashTimer = null;
+    function flashLevels(lv) { // what is selected, at level lv
+      const f = patch[patchSel];
+      if (!f) { const a = patchAddr || (patchSel >= 0 ? patchSel + 1 : 0); return a ? { [a]: lv } : {}; } // a free address or empty channel: just that address
+      const known = channelsFor(patchSel, lv, { r: 255, g: 255, b: 255 }); // dimmer and colour, if the type says where they are
+      if (Object.keys(known).length) return known;
+      const out = {}; // type not set yet (or no dimmer in the profile): raise everything the fixture occupies
+      for (let i = 0; i < T(f).ch; i++) if (f.address + i <= 512) out[f.address + i] = lv;
+      return out;
+    }
+    $("flashBtn").onclick = (e) => { // blink between full and 30 for two seconds, then back to normal
+      e.target.blur();
+      if (checking) return; // a light check is already using the output
+      if (!Object.keys(flashLevels(255)).length) return;
+      clearInterval(flashTimer);
+      let n = 0;
+      const tick = () => {
+        if (n++ >= 8) { clearInterval(flashTimer); flashTimer = null; return socket.emit("check", null); }
+        socket.emit("check", flashLevels(n % 2 ? 255 : 30));
+      };
+      tick();
+      flashTimer = setInterval(tick, 250);
+    };
+    // A new fixture takes the channel that matches its address (address 11 = channel 11), leaving empty channels
+    // in between if it has to. If that channel is taken, the next free one after it.
+    function addFixtureAt(address, universe) {
+      let ch = address;
+      while (patch[ch - 1]) ch++;
+      patch[ch - 1] = {
+        name: "Fixture " + ch,
+        type: "dimmer",
+        address, ...(address !== ch ? { addrFixed: true } : {}), sacn: true, dmx: false, artnet: false, universe,
+        x: 10 + (ch * 11) % 80,
+        y: 60,
+      };
+      patchSel = ch - 1; patchAddr = 0; // the new one is selected when the server sends the patch back
+      socket.emit("savePatch", patch);
+    }
+    $("addFixture").onclick = () => {
+      const last = patch.filter(Boolean).at(-1);
+      addFixtureAt(patch.length + 1, last ? last.universe || 1 : 1); // the next channel, address to match
+    };
+    $("patchHere").onclick = (e) => {
+      e.target.blur();
+      if (patchAddr) addFixtureAt(patchAddr, patchOut);                               // from the map: that address
+      else if (patchSel >= 0 && !patch[patchSel]) addFixtureAt(patchSel + 1, patchOut); // from an empty row: that channel
+    };
+
+    // ---- lower pane: Patch summary · Protocols · Device List
+    for (const b of document.querySelectorAll(".pnav button")) b.onclick = () => {
+      document.querySelectorAll(".pnav button, .pane").forEach((el) => el.classList.remove("on"));
+      b.classList.add("on");
+      $(b.dataset.pane).classList.add("on");
+      if (b.dataset.pane === "paneDevices") loadSerialPorts();
+    };
+    for (const b of document.querySelectorAll(".ptabs button")) b.onclick = () => {
+      document.querySelectorAll(".ptabs button, .proto").forEach((el) => el.classList.remove("on"));
+      b.classList.add("on");
+      $("proto-" + b.dataset.proto).classList.add("on");
+      if (b.dataset.proto === "dmx") loadSerialPorts();
+    };
+    function paintPatchSummary() {
+      const used = new Set();
+      for (const f of patch) if (f) for (let i = 0; i < T(f).ch; i++) used.add(f.address + i);
+      const outs = [...new Set(patch.filter(Boolean).map((f) => f.universe || 1))].sort((a, b) => a - b);
+      const state = (k, on) => `<b style="color:${on ? "#e3a21a" : "#667"}">${k} ${on ? "on" : "off"}</b>`;
+      $("patchSummary").innerHTML = `${patch.filter(Boolean).length} fixtures · outputs ${outs.join(", ") || "–"} · ${state("sACN", protocols.sacn.enabled)} · ${state("ArtNet", protocols.artnet.enabled)} · ${state("Local DMX", protocols.dmx.enabled)}${protocols.dmx.enabled ? (outputs.dmxPort ? " on " + outputs.dmxPort : " (no port)") : ""}`;
+    }
+    const pget = (path) => path.split(".").reduce((o, k) => o[k], protocols);
+    function paintProtocols() {
+      for (const el of document.querySelectorAll("[data-p]")) {
+        const v = pget(el.dataset.p);
+        if (el.type === "checkbox") { el.checked = !!v; el.nextElementSibling.nextElementSibling.textContent = v ? "Enabled" : "Disabled"; }
+        else if (el.id === "dmxPortSel") { if (![...el.options].some((o) => o.value === v)) el.add(new Option(v || "(none)", v || "")); el.value = v || ""; }
+        else el.value = v;
+      }
+      $("dmxStatus").textContent = !outputs.serial ? "The serialport package is not loaded on the server, so Local DMX is off."
+        : !protocols.dmx.enabled ? "Local DMX is off."
+        : outputs.dmxPort ? `Sending on ${outputs.dmxPort}.` : protocols.dmx.port ? `Could not open ${protocols.dmx.port}. Check the cable, then Refresh ports.` : "Pick the USB interface's port.";
+      $("ifaceRows").innerHTML = outputs.ifaces.map((ip) => `<tr><td>${ip}</td><td>sACN multicast · ArtNet broadcast</td></tr>`).join("") || "<tr><td>No network cards</td></tr>";
+      paintPatchSummary();
+    }
+    for (const el of document.querySelectorAll("[data-p]")) el.onchange = () => {
+      const [k, key] = el.dataset.p.split(".");
+      const v = el.type === "checkbox" ? el.checked : el.type === "number" ? Number(el.value) : el.value;
+      protocols[k][key] = v;
+      socket.emit("saveProtocols", { [k]: { [key]: v } });
+      paintProtocols();
+      buildPatch();
+      el.blur();
+    };
+    function loadSerialPorts() {
+      socket.emit("serialPorts", (list) => {
+        const sel = $("dmxPortSel"), keep = protocols.dmx.port;
+        sel.innerHTML = "";
+        sel.add(new Option("(none)", ""));
+        for (const p of list) sel.add(new Option(p.path + (p.name ? "  " + p.name : ""), p.path));
+        if (keep && ![...sel.options].some((o) => o.value === keep)) sel.add(new Option(keep + "  (unplugged)", keep));
+        sel.value = keep || "";
+        $("serialRows").innerHTML = list.map((p) => `<tr><td>${p.path}</td><td>${p.name}</td><td>${p.path === outputs.dmxPort ? "Local DMX" : ""}</td></tr>`).join("") || "<tr><td>No serial ports</td></tr>";
+      });
+    }
+    $("refreshPorts").onclick = (e) => { loadSerialPorts(); e.target.blur(); };
 
     // ---- selection panel
     const hex = ({ r, g, b }) => "#" + [r, g, b].map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
@@ -614,6 +1127,7 @@
     let blindMoves = {};      // what that cue changes compared to the cue before (blue / green)
     let staleSet = new Set(); // channels whose cue changed in Blind but whose stage level didn't
     const inBlind = () => blindNo !== null;
+    let onPatch = false; // true while the Patch tab is open: the page is blind without needing a cue
     const view = () => (inBlind() && blindLook ? blindLook : dmx);
     const lightIndexes = () => cues.map((c, i) => (c.type === "light" ? i : -1)).filter((i) => i >= 0);
     function blindIndex() {
@@ -649,6 +1163,7 @@
     let blindPending = null, blindTimer = null;
     function sendLevels(all) {
       if (!Object.keys(all).length) return;
+      if (onPatch && !inBlind()) return hint("Patch is blind: leave the Patch tab to change the stage", true);
       if (!inBlind()) return socket.emit("setChannels", all);
       blindPending = { ...(blindPending || {}), ...all };
       if (!blindTimer) flushBlind();
@@ -698,10 +1213,12 @@
       blindLook = inBlind() ? lookAt(i) : null;
       blindMoves = inBlind() ? movesAt(i) : {};
       document.body.classList.toggle("blind", inBlind());
-      $("mode").textContent = inBlind() ? "BLIND" : "LIVE";
-      $("prompt").textContent = inBlind() ? `BLIND Q${blindNo}:` : "LIVE:";
-      document.title = inBlind() ? "BLIND · Lights" : "Lights";
-      for (const id of ["load", "record", "recordNew", "clear"]) $(id).disabled = inBlind(); // these act on the stage
+      document.body.classList.toggle("patchmode", onPatch && !inBlind());
+      document.body.classList.toggle("onpatch", onPatch);
+      $("mode").textContent = inBlind() ? "BLIND" : onPatch ? "BLIND · PATCH" : "LIVE";
+      $("prompt").textContent = inBlind() ? `BLIND Q${blindNo}:` : onPatch ? "PATCH:" : "LIVE:";
+      document.title = inBlind() || onPatch ? "BLIND · Lights" : "Lights";
+      for (const id of ["load", "record", "recordNew", "clear"]) $(id).disabled = inBlind() || onPatch; // these act on the stage
       if (inBlind()) {
         $("blindCue").textContent = `${cues[i].number}${cues[i].label ? " " + cues[i].label : ""}`;
         const on = cues[onStageIndex()];
@@ -816,7 +1333,7 @@
     }
     const clampLv = (v) => Math.max(0, Math.min(255, Math.round(v)));
     const pctLv = (n) => clampLv(Math.min(100, Number(n)) * 2.55);
-    const dmxOf = (i) => { const f = patch[i]; return Array.from({ length: TYPES[f.type].ch }, (_, k) => f.address + k); };
+    const dmxOf = (i) => { const f = patch[i]; return Array.from({ length: T(f).ch }, (_, k) => f.address + k); };
     const sameNumber = (a, b) => a === b || (a !== "" && b !== "" && Number(a) === Number(b));
     // The light cue with this number (sound and mix cues belong to the other pages)
     function lightCue(n) {
@@ -1004,10 +1521,15 @@
 
     // ← / →: step the selection through the patched channels
     function step(dir) {
-      if (!patch.length) return;
+      const have = patch.map((f, i) => (f ? i : -1)).filter((i) => i >= 0); // the patched channels, in order
+      if (!have.length) return;
       const cur = [...selected];
-      const i = cur.length ? (dir > 0 ? Math.max(...cur) : Math.min(...cur)) + dir : 0;
-      selected = new Set([(i + patch.length) % patch.length]);
+      let next = have[0];
+      if (cur.length) {
+        const i = dir > 0 ? Math.max(...cur) : Math.min(...cur);
+        next = dir > 0 ? (have.find((k) => k > i) ?? have[0]) : (have.findLast((k) => k < i) ?? have[have.length - 1]); // wraps
+      }
+      selected = new Set([next]);
       paintAll();
     }
 
@@ -1051,6 +1573,10 @@
         $("cueOnly").checked = !$("cueOnly").checked;
         hint($("cueOnly").checked ? "Only this cue: later cues stay as they are" : "Changes carry on into later cues");
       };
+      if (onPatch && (k === "ArrowUp" || k === "ArrowDown")) return () => { // Patch tab: step the selected row one channel
+        const rows = $("patchRows").children.length;
+        selectRow(Math.max(0, Math.min(rows - 1, patchSel + (k === "ArrowDown" ? 1 : -1)))); // from nothing selected (-1), Down lands on channel 1
+      };
       if (k === "ArrowUp") return () => { line = lastLine.slice(); confirmDelete = false; paintLine(); };
       if (k === "ArrowLeft") return () => step(-1);
       if (k === "ArrowRight") return () => step(1);
@@ -1072,6 +1598,7 @@
     }
     function toggleKeys() { $("keys").classList.toggle("on"); }
     document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape" && $("fixPicker").classList.contains("on")) return closePicker();
       const el = e.target;
       if (el.matches("input:not([type=range]):not([type=color]), textarea")) return; // typing in a field
       if (el.matches("select") && ["ArrowUp", "ArrowDown"].includes(e.key)) return; // choosing from a list
@@ -1081,7 +1608,7 @@
       const act = keyAction(e);
       if (!act) return;
       e.preventDefault();
-      if (e.repeat && !["Backspace", "ArrowLeft", "ArrowRight", "[", "]"].includes(e.key)) return; // a held key acts once
+      if (e.repeat && !["Backspace", "ArrowLeft", "ArrowRight", "ArrowUp", "ArrowDown", "[", "]"].includes(e.key)) return; // a held key acts once
       act();
     });
     for (const el of document.querySelectorAll("header select, header button")) el.addEventListener("change", () => el.blur());
@@ -1265,11 +1792,21 @@
       document.querySelectorAll(".tabs button, .tab").forEach((el) => el.classList.remove("on"));
       b.classList.add("on");
       $(b.dataset.tab).classList.add("on");
+      // Patch is a blind display: nothing done there reaches the stage
+      onPatch = b.dataset.tab === "patchTab";
+      refreshBlind();
       b.blur();
     };
 
     // ---- the server is the source of truth
-    function paintAll() { paintStage(); paintLive(); paintGrid(); paintPanel(); paintGroupButtons(); sendCheck(); paintCheck(); }
+    // Patch table Output column: the DMX value going out for each light (its dimmer channel, or its brightest channel)
+    function paintPatchOut() {
+      for (const td of $("patchRows").querySelectorAll("[data-out]")) {
+        const i = Number(td.dataset.out), f = patch[i];
+        td.textContent = f ? (hasDimmer(f) ? dmx[f.address + T(f).i - 1] : Math.max(...dmxOf(i).map((ch) => dmx[ch - 1]))) ?? 0 : "";
+      }
+    }
+    function paintAll() { paintStage(); paintLive(); paintGrid(); paintPanel(); paintGroupButtons(); sendCheck(); paintCheck(); paintPatchOut(); }
 
     socket.on("dmx", (d) => { dmx = d; paintAll(); });
     socket.on("marks", (m) => { manualSet = new Set(m.manual); moves = m.moves; staleSet = new Set(m.stale || []); paintGrid(); });
@@ -1278,13 +1815,16 @@
       cues = state.cues;
       currentCue = state.currentCue;
       patch = state.patch || [];
+      protocols = state.protocols || protocols;
+      outputs = state.outputs || outputs;
+      paintProtocols();
       groups = state.groups || {};
       palettes = state.palettes || {};
       faders = state.faders || [];
       buildFaders();
       buildGroupButtons();
       master = state.master ?? 255;
-      selected = new Set([...selected].filter((i) => i < patch.length));
+      selected = new Set([...selected].filter((i) => patch[i]));
 
       const sel = $("target"), keep = sel.value;
       sel.innerHTML = "";
