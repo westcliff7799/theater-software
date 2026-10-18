@@ -1,36 +1,90 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-<head>
-  <meta charset="utf-8">
-  <title>Sign in</title>
-  <link rel="stylesheet" href="/style.css">
-  <!-- Google's sign-in library. It looks for the two divs below and draws the button itself. -->
-  <script src="https://accounts.google.com/gsi/client" async></script>
-</head>
-<body>
-  <h1>Show Server</h1>
-
-  <!-- data-callback names a global function to call with the ID token. The client id is filled in by the /login route. -->
-  <div id="g_id_onload" data-client_id="__CLIENT_ID__" data-callback="onGoogle"></div>
-  <div class="g_id_signin" data-type="standard"></div>
-
-  <p>or</p>
-  <button onclick="guest()">Continue as guest</button>
-
-  <script>
-    // POST a JSON body, then go to Home if the server said ok
-    async function send(url, body) {
-      const r = await fetch(url, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(body),
-      });
-      if (r.ok) location.href = "/";
-      else alert("Sign-in failed");
-    }
-    // resp.credential is the ID token. We never decode it here; only the server's check matters.
-    function onGoogle(resp) { send("/auth/google", { credential: resp.credential }); }
-    function guest() { send("/auth/guest", {}); }
-  </script>
-</body>
+  <head>
+    <meta charset="utf-8" />
+    <title>Sign in</title>
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      main {
+        display: block;
+        max-width: 380px;
+        margin: 100px auto 0;
+        padding: 24px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0 0 4px;
+      }
+      p {
+        color: var(--dim);
+        margin: 0 0 18px;
+      }
+      input {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        font-size: 20px;
+        font-family: Menlo, monospace;
+        letter-spacing: 0.1em;
+        text-transform: uppercase;
+        padding: 10px 12px;
+        margin-bottom: 10px;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+      }
+      input:focus {
+        outline: none;
+        border-color: #3fdc5a;
+      }
+      .err {
+        color: #e07070;
+        min-height: 1.4em;
+        margin: 0 0 8px;
+      }
+      button {
+        width: 100%;
+        padding: 10px;
+        font-size: 15px;
+      }
+      .admin {
+        margin: 24px 0 0;
+        text-align: center;
+        font-size: 13px;
+      }
+      .admin a {
+        color: var(--dim);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Show Control</h1>
+      <p>Enter the key you were given.</p>
+      <input id="key" placeholder="SIX-LX-4KQ2" autofocus />
+      <p class="err" id="err"></p>
+      <button id="go">Enter</button>
+      <p class="admin"><a href="/admin.html">Admin sign in</a></p>
+    </main>
+    <script>
+      async function enter() {
+        const r = await fetch("/auth/key", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ key: document.getElementById("key").value }),
+        });
+        if (r.ok) location.href = "/";
+        else
+          document.getElementById("err").textContent = (await r.json()).error;
+      }
+      document.getElementById("go").onclick = enter;
+      document.getElementById("key").onkeydown = (e) => {
+        if (e.key === "Enter") enter();
+      };
+    </script>
+  </body>
 </html>

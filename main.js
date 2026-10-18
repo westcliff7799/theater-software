@@ -1,7 +1,7 @@
 // main.js - the desktop app. Starts the show server, then opens windows onto it.
 const { app, BrowserWindow, Menu, session } = require("electron");
 
-const { localTicket } = require("./server.js"); // this runs your whole server inside the app
+const { localTicket } = require("./server.js"); //runs server inside app
 
 let listener = null; // hidden window: the microphone and the script follower live here, whatever page is showing
 
@@ -16,14 +16,15 @@ function openView(page, width = 1000, height = 700) {
 }
 
 app.whenReady().then(async () => {
-  // The app owns the server, so it signs itself in: every window shares this cookie jar.
-  // httpOnly matches the cookie the server sets; Chromium refuses to overwrite an HttpOnly cookie with a plain one.
-  await session.defaultSession.cookies.set({
-    url: "http://localhost:3000",
-    name: "sid",
-    value: localTicket(),
-    httpOnly: true,
-  }).catch((err) => console.log("desktop sign-in cookie:", err.message));
+  // The app owns the server, so it signs itself in: every window shares this cookie jar
+  await session.defaultSession.cookies
+    .set({
+      url: "http://localhost:3000",
+      name: "sid",
+      value: localTicket(),
+      httpOnly: true,
+    })
+    .catch((err) => console.log("desktop sign-in cookie:", err.message));
 
   openView("sm.html", 1200, 800); // main view
   listener = new BrowserWindow({

@@ -19,7 +19,7 @@
     header .master input { width: 120px; }
     button.blackout.on { background: #8f1f1f; border-color: #8f1f1f; }
 
-    main { grid-template-columns: 1fr 300px; }
+    main { grid-template-columns: 1fr; }
     .left { display: flex; flex-direction: column; overflow: hidden; }
     .tabs { display: flex; gap: 2px; padding: 6px 12px 0; background: #0a0a0a; border-bottom: 1px solid var(--line); }
     .tabs button { background: #161616; border: 1px solid #333; border-bottom: none; border-radius: 4px 4px 0 0; color: #bbb; font-weight: bold; font-size: 13px; padding: 7px 16px; }
@@ -27,15 +27,68 @@
     .tab { display: none; flex: 1; overflow: auto; }
     .tab.on { display: block; }
 
-    /* stage plot: top of the box is upstage, bottom is the audience */
-    #stage { position: relative; margin: 16px; height: calc(100% - 32px); min-height: 360px; background: #0a0a0a; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
-    #stage .edge { position: absolute; left: 0; right: 0; bottom: 0; padding: 4px 8px; color: var(--dim); font-size: 11px; text-align: center; border-top: 1px dashed var(--line); pointer-events: none; }
-    .fx { position: absolute; width: 46px; height: 46px; margin: -23px 0 0 -23px; border-radius: 50%; border: 2px solid var(--line); cursor: grab; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: var(--text); text-shadow: 0 0 3px #000; user-select: none; touch-action: none; }
+    /* stage map: a scale plan of the stage with a 1 m grid. Top is upstage, bottom is the audience */
+    #stageTab.on { display: flex; flex-direction: column; }
+    .mapBar { display: flex; gap: 14px; align-items: center; flex-wrap: wrap; padding: 8px 16px 0; color: var(--dim); font-size: 12px; }
+    .mapBar label { display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+    .mapBar input { width: 54px; padding: 4px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 4px; }
+    .mapBar .mover { display: none; gap: 10px; align-items: center; padding-left: 14px; border-left: 1px solid var(--line); }
+    .mapBar .mover.on { display: flex; }
+    .mapBar .mover b { color: var(--mode); }
+    #mapWrap { flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; padding: 14px 16px 16px; }
+    .map { position: relative; background: #0a0a0a; border: 1px solid #444; cursor: crosshair; touch-action: none;
+      background-image: linear-gradient(#1a1a1a 1px, transparent 1px), linear-gradient(90deg, #1a1a1a 1px, transparent 1px); }
+    .map .centre { position: absolute; top: 0; bottom: 0; left: 50%; border-left: 1px dashed #333; pointer-events: none; }
+    /* areas drawn on the plan: the stage, the house, wings, walls, curtains. Metres, so they scale with the plan */
+    .map .area { position: absolute; box-sizing: border-box; border: 1px dashed #3a3a3a; background: rgba(255, 255, 255, .02); pointer-events: none; }
+    .map .area.stage { border: 1px solid #5a5a5a; background: rgba(227, 162, 26, .05); }
+    .map .area.wall { border: none; background: #4a4a4a; }
+    .map .area.curtain { border: none; background: repeating-linear-gradient(90deg, #7a2030 0 4px, #4a1420 4px 8px); }
+    .map .area b { position: absolute; top: 2px; left: 5px; font-size: 10px; color: #777; letter-spacing: 1px; font-weight: normal; text-transform: uppercase; white-space: nowrap; }
+    .map .area.wall b, .map .area.curtain b { top: 100%; color: #666; }
+    .map.editing .area { pointer-events: auto; cursor: move; }
+    .map:not(.editing) .fx, .map:not(.editing) .beam { cursor: pointer; } /* outside Edit map, the plan only selects */
+    .map.editing .area:hover { outline: 1px solid var(--mode); }
+    .ml .pad .area b { display: none; }
+    #mapEdit.on { color: var(--mode); border-color: var(--mode); }
+    .mapBar .toggle b { font-weight: normal; }
+    .mapAreas { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; padding: 6px 16px 0; color: var(--dim); font-size: 12px; }
+    .mapAreas[hidden] { display: none; }
+    .mapAreas .arow { display: flex; gap: 6px; align-items: center; padding: 3px 8px; border: 1px solid var(--line); border-radius: 4px; }
+    .mapAreas .arow label { display: flex; gap: 3px; align-items: center; }
+    .mapAreas input, .mapAreas select { padding: 3px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 4px; }
+    .mapAreas input[data-a=name] { width: 90px; }
+    .mapAreas input[type=number] { width: 52px; }
+    .map .lbl { position: absolute; color: var(--dim); font-size: 11px; letter-spacing: 1px; pointer-events: none; }
+    .map .lbl.up { top: 4px; left: 0; right: 0; text-align: center; }
+    .map .lbl.edge { bottom: 0; left: 0; right: 0; text-align: center; padding: 3px 0; border-top: 1px dashed var(--line); }
+    .map .lbl.sr { left: 6px; top: 50%; } .map .lbl.sl { right: 6px; top: 50%; }
+    .map svg { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; overflow: visible; }
+    .fx { position: absolute; width: 42px; height: 42px; margin: -21px 0 0 -21px; border-radius: 50%; border: 2px solid var(--line); cursor: grab; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: bold; color: var(--text); text-shadow: 0 0 3px #000; user-select: none; touch-action: none; }
     .fx.sel { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent); }
-    .fx small { position: absolute; top: 46px; width: 90px; text-align: center; color: var(--dim); font-size: 10px; font-weight: normal; }
+    .fx.mover { border-radius: 8px; } /* movers are squares, so you can tell them from dimmers at a glance */
+    .fx small { position: absolute; top: 42px; width: 90px; text-align: center; color: var(--dim); font-size: 10px; font-weight: normal; }
+    /* where a mover's beam lands: a dot in that mover's own colour, numbered like the fixture */
+    .beam { position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; border: 2px solid; background: #000; color: #fff; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: crosshair; touch-action: none; user-select: none; z-index: 2; }
+    .beam.sel { box-shadow: 0 0 0 2px var(--accent); }
+    /* a conventional's arrow tip: drag it round the light to set which way the unit faces */
+    .turn { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; border: 2px solid #bbb; background: #000; cursor: grab; touch-action: none; z-index: 2; }
 
     /* channel grid: one box per channel, level under the number */
-    .grid { display: grid; grid-template-columns: repeat(24, 1fr); gap: 4px; padding: 12px; }
+    /* Live page, like a console's live table: strips of cells with separators, and a table for each run of
+       fixtures that have colour or movement, all in channel order */
+    .grid { padding: 12px; }
+    .grid .strip { display: grid; gap: 7px; margin-bottom: 16px; } /* fixed columns (set when built), so every row lines up */
+    .grid { --tile: 72px; } /* tile width; the Live layout pane sets it */
+    .grid .strip .cell { min-height: calc(var(--tile) * 0.78); position: relative; }
+    .grid .strip .cell .num { font-size: calc(var(--tile) * 0.2); padding: 4px 0 2px; border-bottom: none; }
+    .grid .strip .cell .lv { font-size: calc(var(--tile) * 0.24); }
+    .grid .strip .cell .lv.zero { color: #7a5aa0; } /* patched, nothing driving it */
+    .grid .strip .cell.sep { margin-left: 14px; } /* a wider gap before this tile, with the line centred in it */
+    .grid .strip .cell.sep::before { content: ""; position: absolute; left: -11px; top: 20%; bottom: 20%; width: 2px; border-radius: 1px; background: #666; }
+    .grid .strip .br { grid-column: 1 / -1; height: 0; margin: -4px 0; }
+    .cell .lbl { font-size: 11px; color: #8a8a8a; padding: 2px 4px 0; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .cell .lbl:empty { display: none; }
     .cell { min-height: 74px; display: flex; flex-direction: column; border: 1px solid #3a3a3a; border-radius: 3px; background: #000; font-family: Menlo, monospace; cursor: pointer; }
     .cell .num { text-align: center; padding: 3px 0; font-size: 13px; color: #777; border-bottom: 1px solid #222; }
     .cell.patched .num { color: #ccc; }
@@ -62,6 +115,23 @@
     .playback .paused { color: #ff9f43; }
 
     /* live table: one row per channel, one column per parameter */
+    .grid .block { margin: 4px 0 18px; }
+    .grid .block table { width: auto; border-collapse: separate; border-spacing: 1px; background: #000; }
+    .grid .block th { position: static; background: #242424; color: #ddd; text-transform: none; font-size: 14px; font-weight: normal; padding: 7px 18px; text-align: center; border: none; }
+    .grid .block th.type { background: transparent; color: #eee; font-weight: bold; font-size: 16px; text-align: left; padding: 0 4px 6px; }
+    .grid .block th.cat { background: transparent; color: #ccc; font-size: 15px; text-align: left; padding: 0 10px 6px; }
+    .grid .block td { height: 32px; padding: 3px 18px; border: 1px solid #2a2a2a; background: #0b0b0b; font-family: Menlo, monospace; font-size: 17px; text-align: center; min-width: 64px; }
+    .grid .block td.ch { background: #1a1a1a; text-align: left; font-family: inherit; min-width: 190px; padding: 3px 12px; white-space: nowrap; }
+    .grid .block td.ch b { font-family: Menlo, monospace; font-size: 17px; color: #eee; cursor: pointer; }
+    .grid .block td.ch small { color: #999; font-size: 13px; margin-left: 10px; }
+    .grid .block td.ch small:empty { display: none; }
+    .grid .block .grp { border-left: 8px solid #000; } /* a gap between parameter groups, Intensity | Color | Focus */
+    .grid .block tr.sel td.ch { background: #1a2740; box-shadow: inset 0 0 0 1px var(--gold); }
+    .grid .block .v.zero { color: #7a5aa0; }    /* nothing driving it */
+    .grid .block .v.tracked { color: #c8c8c8; } /* carried from an earlier cue */
+    .grid .block .v.up { color: #4ea3ff; }      /* the last cue took it up */
+    .grid .block .v.down { color: #35c94a; }    /* the last cue took it down */
+    .grid .block .v.manual { color: #ff4136; }  /* set by hand */
     .live td.val { font-family: Menlo, monospace; text-align: center; width: 70px; color: var(--dim); }
     .live td.val.on { color: var(--text); }
     .live td.int.on { color: var(--standby); font-weight: bold; }
@@ -82,6 +152,7 @@
     body.blind #stage::after { content: "BLIND PREVIEW · NOT ON STAGE"; position: absolute; top: 8px; right: 12px; color: var(--blue); font-size: 11px; letter-spacing: 1px; pointer-events: none; }
     .cell.stale { outline: 1px dashed var(--blue); outline-offset: -3px; }
     .cell .lv.fader { color: #f5a623; } /* lifted by a fader outside the cue list */
+    .cell .lv.check { color: var(--gold); } /* lit by the light check */
 
     /* light check: one light at a time, everything else dark (output only) */
     .checkbar { display: none; align-items: center; gap: 14px; padding: 8px 14px; background: #3a0d0d; border-bottom: 1px solid #ff4136; color: #ffd6d3; font-size: 13px; }
@@ -127,7 +198,7 @@
     .patchTable { flex: 1; overflow: auto; padding: 0 12px; } /* no top padding, so the sticky header sits flush and rows can't peek above it */
     .patch input, .patch select { padding: 4px 8px; background: #000; color: #eee; border: 1px solid #1c2735; border-radius: 3px; width: 100%; font-size: 14px; }
     .patch table { border-collapse: separate; border-spacing: 0; table-layout: fixed; } /* console look: black column blocks with thin row lines, navy gaps between sections */
-    .patch col.cAddr { width: 96px; } .patch col.cChan { width: 110px; } .patch col.cType { width: 210px; }
+    .patch col.cAddr { width: 124px; } .patch col.cChan { width: 110px; } .patch col.cType { width: 330px; } /* Type is wide enough for "PLPROFILE4 · 16-bit (16 ch)"; Label takes what is left */
     .patch col.cPri { width: 130px; } .patch col.cIf { width: 64px; } .patch col.cOut { width: 100px; } .patch col.cUses { width: 110px; } .patch col.cRm { width: 48px; }
     .patch td input, .patch td select { background: transparent; border: none; padding: 2px 4px; }
     .patch td input:focus, .patch td select:focus { outline: 1px solid var(--gold); border-radius: 2px; }
@@ -152,7 +223,7 @@
     .patch th:nth-child(2), .patch th:nth-child(4), .patch th:nth-child(8), .patch th:nth-child(9) { box-shadow: inset -4px 0 0 0 #0d1620, inset -5px 0 0 0 #2f4157; } /* header: a 5px line band with a 4px gap-coloured band over it = 1px line exactly where the row lines are */
     .patch .interface { text-align: center; }
     .patch p { padding: 10px 0; margin: 0; }
-    .patchPane { height: 250px; flex: none; display: flex; border-top: 2px solid var(--blue); background: #000; }
+    .patchPane { height: 290px; flex: none; display: flex; border-top: 2px solid var(--blue); background: #000; }
     .pnav { width: 150px; display: flex; flex-direction: column; border-right: 1px solid #1c2735; background: #0d1620; }
     .pnav button { background: none; border: none; border-bottom: 1px solid #1c2735; border-radius: 0; color: #9fb0c3; text-align: left; padding: 14px 12px; font-size: 14px; }
     .pnav button.on { color: #fff; font-weight: bold; }
@@ -177,10 +248,12 @@
     .pane .note { color: #9fb0c3; margin: 10px 0 0; }
     #paneInfo.on { display: flex; gap: 16px; padding: 8px 12px; }
     .addrMap { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-    .addrGrid { flex: 1; min-height: 0; overflow: auto; display: grid; grid-template-columns: repeat(32, minmax(22px, 1fr)); gap: 1px; align-content: start; font-size: 11px; font-weight: bold; } /* never narrower than its numbers: a small window scrolls the map instead of spilling it under the inspector */
-    .addrGrid .a { text-align: center; line-height: 11px; padding: 0; color: #5d6b7a; cursor: pointer; border-radius: 2px; }
-    .addrGrid .a.used { color: #fff; background: #152030; }
-    .addrGrid .a.sel { color: #000; background: var(--gold); }
+    .addrGrid { flex: 1; min-height: 0; overflow: hidden auto; display: grid; grid-template-columns: repeat(32, minmax(22px, 1fr)); grid-template-rows: repeat(16, minmax(0, 1fr)); gap: 1px; font-size: 11px; font-weight: bold; } /* 16 rows share the height, so the whole map is always in view */ /* never narrower than its numbers: a small window scrolls the map instead of spilling it under the inspector */
+    .addrGrid .a { display: flex; align-items: center; justify-content: center; line-height: 1; overflow: hidden; padding: 0; color: #5d6b7a; cursor: pointer; border-radius: 2px; }
+    .addrGrid .a.used { color: #6f8196; background: #111926; }               /* the rest of a fixture's run: dim */
+    .addrGrid .a.used.first { color: #fff; background: #1a2a40; }            /* its first address: bright */
+    .addrGrid .a.sel { color: #3a2e08; background: #a8862a; }                /* selected fixture, same idea in gold */
+    .addrGrid .a.sel.first { color: #000; background: var(--gold); }
     .addrGrid .a:hover { outline: 1px solid var(--gold); }
     .addrNav { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; padding-top: 6px; color: #c9d3de; font-size: 13px; }
     .addrNav button { padding: 2px 12px; font-size: 16px; line-height: 16px; }
@@ -222,6 +295,10 @@
     .patch tr.free:hover td { background: #0a121c; }
     .patch tr.sel td { box-shadow: inset 0 0 0 1px var(--gold); }
     .patch tr.sel td:nth-child(2) { box-shadow: none; }
+    .patch tr.part td { background: #05080c; height: 26px; }                      /* a part of the channel above */
+    .patch tr.part td:first-child { padding-left: 28px; font-size: 13px; font-weight: normal; color: #9fb0c3; }
+    .patch tr.part td.ro { font-size: 13px; color: #c9d3de; }
+    .patch tr.part td input { font-size: 13px; }
     .pane table td, .pane table th { padding: 4px 10px; border: none; background: none; font-size: 13px; }
     .pane table th { position: static; background: none; color: var(--gold); text-transform: none; }
     /* Patch is blind too: same blue look, no cue needed, and the Selected panel gets out of the way */
@@ -242,21 +319,51 @@
     .cmd button.gobtn { background: var(--go); border-color: var(--go); }
     .cmd span { color: #999; font-size: 12px; white-space: nowrap; }
 
-    /* selection panel */
-    .inspector h3 { margin: 0 0 4px; }
-    .inspector .who { color: var(--dim); font-size: 13px; min-height: 40px; }
+    /* selection panel: a skinny strip down the right with one vertical fader for whatever is selected */
+    .inspector { padding: 10px 6px; display: flex; flex-direction: column; align-items: stretch; gap: 6px; }
+    .inspector .who { color: var(--dim); font-size: 11px; min-height: 28px; text-align: center; word-break: break-word; }
+    .faderCol { flex: 1; min-height: 120px; display: flex; justify-content: center; margin: 4px 0; }
+    .faderCol input { -webkit-appearance: slider-vertical; appearance: slider-vertical; width: 30px; height: 100%; margin: 0; }
+    .inspector .row { margin: 0; flex-direction: column; }
+    .inspector .row button { padding: 6px 0; }
     .level { font-size: 44px; font-weight: bold; text-align: center; margin: 8px 0 0; }
     .big { width: 100%; margin: 8px 0 12px; }
     .row { display: flex; gap: 6px; margin: 8px 0; }
     .row button { flex: 1; }
     .swatches { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
     .swatch { width: 34px; height: 34px; border-radius: 6px; border: 1px solid var(--line); cursor: pointer; }
-    #colorBox { margin-top: 20px; }
-    main { grid-template-columns: 1fr 300px; }          /* Edit: grid · Selected */
-    body.mode-show main { grid-template-columns: 1fr 400px; } /* Show: grid · live script */
+    main { grid-template-columns: 1fr 84px; }                     /* Edit: page · Selected */
+    body.mode-show main { grid-template-columns: 1fr 84px 400px; } /* Show: page · Selected · live script */
     #liveScript { min-height: 0; }
-    #colorBox.off { opacity: 0.25; pointer-events: none; }
-    #colorBox input[type=color] { width: 100%; height: 40px; padding: 0; border: 1px solid var(--line); background: #111; border-radius: 4px; }
+    .inspector .pct { font-size: 20px; font-weight: bold; text-align: center; color: var(--mode); }
+    .inspector.off > :not(.who) { opacity: 0.25; pointer-events: none; } /* nothing selected */
+
+    /* ML controls popup: every slider drives all the selected lights at once. The shade behind it dims the page and closes it on a click */
+    .shade { display: none; position: fixed; inset: 0; z-index: 19; background: rgba(0, 0, 0, .5); }
+    .shade.on { display: block; }
+    .ml { display: none; position: fixed; inset: 60px 40px; z-index: 20; background: #0e0e0e; border: 1px solid var(--mode); border-radius: 6px; padding: 16px 20px; overflow: auto; }
+    .ml.on { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px 24px; align-content: start; }
+    .ml .head { grid-column: 1 / -1; display: flex; gap: 14px; align-items: baseline; margin-bottom: 8px; padding-right: 40px; }
+    .ml .head h3 { margin: 0; color: var(--mode); letter-spacing: 2px; font-size: 16px; }
+    .ml .head span { color: var(--dim); font-size: 13px; }
+    .ml h4 { color: var(--mode); margin: 0 0 8px; letter-spacing: 1px; }
+    .ml h4 small { color: var(--dim); font-weight: normal; letter-spacing: 0; font-size: 11px; margin-left: 8px; }
+    .ml .slider { display: grid; grid-template-columns: 110px 1fr 40px; gap: 8px; align-items: center; margin: 6px 0; font-size: 13px; color: #ccc; }
+    .ml .slider span small { display: block; color: var(--dim); font-size: 11px; }
+    .ml #mlRaw .slider { grid-template-columns: 1fr 1fr 40px; } /* long hints: give the words as much room as the slider */
+    .ml .slider b { text-align: right; font-family: Menlo, monospace; color: var(--mode); font-weight: normal; }
+    .ml .pad { margin-bottom: 8px; }
+    .ml .pad .fx { width: 18px; height: 18px; margin: -9px 0 0 -9px; font-size: 9px; border-width: 1px; cursor: default; }
+    .ml .pad .fx small { display: none; }
+    .ml .pad .beam { width: 18px; height: 18px; margin: -9px 0 0 -9px; font-size: 9px; }
+    .ml .legend { display: flex; flex-wrap: wrap; gap: 6px 14px; font-size: 12px; color: #ccc; margin-bottom: 8px; }
+    .ml .legend i { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; vertical-align: -1px; }
+    .ml #mlHome { margin-bottom: 12px; }
+    .ml .geo { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; margin-bottom: 10px; font-size: 12px; color: var(--dim); }
+    .ml .geo label { display: flex; gap: 4px; align-items: center; white-space: nowrap; }
+    .ml .geo input { width: 52px; padding: 3px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 4px; }
+    .ml .close { position: absolute; top: 10px; right: 12px; }
+    .ml input[type=color] { width: 100%; height: 36px; padding: 0; margin-bottom: 8px; background: #111; border: 1px solid var(--line); }
   </style>
 </head>
 <body>
@@ -272,6 +379,7 @@
     <label class="master">Master <input id="master" type="range" min="0" max="255" value="255"> <b id="masterText">100%</b></label>
     <button id="blackout" class="blackout">Blackout</button>
     <button id="checkBtn" title="Shift+L: one light at a time at full, everything else dark">Light check</button>
+    <button id="fullBtn" title="Shift+M: colour and every channel of the selected lights, and a map to aim movers">ML</button>
     <span id="clock"></span>
   </header>
 
@@ -280,9 +388,8 @@
       <div class="tabs">
         <button class="on" data-tab="gridTab">1 Live</button>
         <button data-tab="stageTab">2 Stage</button>
-        <button data-tab="liveTab">3 Table</button>
-        <button data-tab="patchTab" data-edit-only>4 Patch</button>
-        <button data-tab="dsTab">5 Groups</button>
+        <button data-tab="patchTab" data-edit-only>3 Patch</button>
+        <button data-tab="dsTab">4 Groups</button>
       </div>
       <div class="blindbar" id="blindBar">
         <span>BLIND · editing cue <b id="blindCue"></b>. The stage is not changing.</span>
@@ -300,18 +407,25 @@
       </div>
 
       <div class="tab" id="stageTab">
-        <div id="stage"><div class="edge">AUDIENCE</div></div>
-      </div>
-
-      <div class="tab live" id="liveTab">
-        <table>
-          <thead><tr><th>Ch</th><th>Name</th><th>Addr</th><th></th><th>Int</th><th>Red</th><th>Green</th><th>Blue</th><th>White</th></tr></thead>
-          <tbody id="liveRows"></tbody>
-        </table>
-        <div class="timing">
-          Timing for cue <b id="timingCue">–</b>: fade up
-          <input id="cueFade" type="number" min="0" step="0.1"> down
-          <input id="cueDown" type="number" min="0" step="0.1"> seconds
+        <div class="mapBar">
+          <span>Plan</span>
+          <label><input id="mapW" type="number" min="2" max="100" step="0.5"> m wide</label>
+          <label><input id="mapD" type="number" min="2" max="100" step="0.5"> m deep</label>
+          <button id="mapEdit" title="Add, name and move the areas drawn on the plan: stage, house, wings, walls, curtains">Edit map</button>
+          <label class="toggle" title="Draw a line from each mover to where its beam lands"><input type="checkbox" id="mapArrows"><span></span><b>Beam lines</b></label>
+          <span id="mapHint">Click a light to select it. Edit map to place lights, turn them, aim movers and draw areas.</span>
+          <div class="mover" id="moverBar">
+            <b id="moverName"></b>
+            <label title="0 faces the audience, 90 faces stage left, -90 stage right, 180 upstage">facing <input id="facing" type="number" min="-180" max="180" step="5" placeholder="none">°</label>
+            <button id="faceClear" title="No particular direction: a bar, a ball, a strip">No direction</button>
+          </div>
+        </div>
+        <div class="mapAreas" id="mapAreas" hidden></div>
+        <div id="mapWrap">
+          <div class="map" id="stage">
+            <svg></svg><div class="centre"></div>
+            <span class="lbl up">UPSTAGE</span><span class="lbl sr">SR</span><span class="lbl sl">SL</span><span class="lbl edge">AUDIENCE</span>
+          </div>
         </div>
       </div>
 
@@ -331,6 +445,7 @@
             <button class="on" data-pane="paneInfo">Patch</button>
             <button data-pane="paneProto">Protocols</button>
             <button data-pane="paneDevices">Device List</button>
+            <button data-pane="paneLive">Live layout</button>
           </nav>
           <div class="pane on" id="paneInfo">
             <div class="addrMap">
@@ -349,12 +464,14 @@
                 <div><label>Label</label><input data-i="name"></div>
                 <div><label>Channel</label><input data-i="chan" type="number" min="1"></div>
                 <div><label>Address</label><input data-i="address" type="number" min="1" max="512" title="Blank: the address follows the channel number. Type one to override."></div>
-                <div><label>Output (universe)</label><input data-i="universe" type="number" min="1" max="63999"></div>
+                <div><label>Output (universe)</label><input data-i="universe" type="number" min="1" max="8"></div>
                 <div><label>Interface</label><input id="inspIface" readonly></div>
               </div>
               <div class="inspActions">
                 <span class="note" id="inspNote"></span>
                 <button id="patchHere" style="display:none">New fixture here</button>
+                <button id="typeAbove" title="Use the same fixture type (make, model and mode) as the nearest channel above">Same as above</button>
+                <button id="addPart" title="Add a part: another cell on this channel with its own address, like an Eos '200 Part 2'">+ Part</button>
                 <button id="flashBtn" title="Light this fixture for a second so you can find it">Flash</button>
               </div>
             </div>
@@ -388,10 +505,22 @@
                 <div><label>Enabled Protocol</label><label class="toggle"><input type="checkbox" data-p="dmx.enabled"><span></span><b></b></label></div>
                 <div><label>Interface Type</label><select data-p="dmx.kind"><option value="pro">Enttec DMX USB Pro / DMXking</option><option value="open">Open DMX (FTDI)</option></select></div>
                 <div><label>Port</label><select data-p="dmx.port" id="dmxPortSel"></select></div>
+                <div><label>Output on the cable</label><select data-p="dmx.output" title="The one output this USB interface carries"><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5</option><option value="6">6</option><option value="7">7</option><option value="8">8</option></select></div>
                 <div><label>&nbsp;</label><button id="refreshPorts">Refresh ports</button></div>
               </div>
               <p class="note" id="dmxStatus"></p>
             </div>
+          </div>
+          <div class="pane" id="paneLive">
+            <h4>Live layout</h4>
+            <div class="fields">
+              <div><label>Tile size</label><select data-l="tile"><option value="56">Small</option><option value="72">Medium</option><option value="88">Large</option><option value="104">Extra large</option></select></div>
+              <div><label>Channels shown</label><select data-l="onlyPatched"><option value="1">Patched channels only</option><option value="0">Every channel, empty ones dim</option></select></div>
+              <div><label>Separator where the numbering skips</label><label class="toggle"><input type="checkbox" data-l="autoGaps"><span></span><b></b></label></div>
+              <div><label>Separators after channels</label><input data-l="breaks" placeholder="e.g. 36, 96"></div>
+              <div><label>New row after channels</label><input data-l="rows" placeholder="e.g. 100"></div>
+            </div>
+            <p class="note">Fixtures with colour or movement get a table of their own under the cells, in channel order, like a console's live table.</p>
           </div>
           <div class="pane" id="paneDevices">
             <h4>Network cards</h4>
@@ -427,6 +556,37 @@
       </div>
     </div>
 
+    <aside class="inspector off" id="selPanel" title="The selected lights' level. Colour and movers: the ML button in the header">
+      <div class="who" id="selWho">Nothing selected</div>
+      <div class="pct" id="selPct">–</div>
+      <div class="faderCol"><input id="selLevel" type="range" min="0" max="255" value="0" title="Level of the selected lights"></div>
+      <div class="row"><button id="selFull">Full</button><button id="selOut">Out</button></div>
+    </aside>
+
+    <div id="mlShade" class="shade" title="Click to close"></div>
+    <div id="mlPanel" class="ml">
+      <button class="close" id="mlClose" title="Esc">✕</button>
+      <div class="head"><h3>ML CONTROLS</h3><span id="mlWho"></span></div>
+      <div>
+        <h4>INTENSITY</h4><div id="mlInt"></div>
+        <h4>COLOUR</h4><input id="mlPick" type="color" title="One colour for every selected light"><div id="mlColor"></div>
+      </div>
+      <div>
+        <h4>FOCUS <small>drag a dot to aim that mover, drag the floor to aim them all</small></h4>
+        <div class="pad map" id="mlPad"><svg></svg><span class="lbl edge">AUDIENCE</span></div>
+        <div class="legend" id="mlLegend"></div>
+        <div class="geo" id="moverGeo" title="Where the first selected mover hangs, so the map can aim it">
+          <label><input data-m="height" type="number" min="0.5" max="30" step="0.1"> m high</label>
+          <label>facing <input data-m="face" type="number" min="-180" max="180" step="5">°</label>
+          <label>pan <input data-m="panRange" type="number" min="-720" max="720" step="10">°</label>
+          <label>tilt <input data-m="tiltRange" type="number" min="-360" max="360" step="10">°</label>
+        </div>
+        <button id="mlHome" title="Pan and tilt to centre: straight down from where it hangs">Home</button>
+        <div id="mlMove"></div>
+      </div>
+      <div><h4>OTHER CHANNELS</h4><div id="mlRaw"></div></div>
+    </div>
+
     <div id="fixPicker" class="picker">
       <div class="pickHead">
         <b>Fixture type</b>
@@ -445,30 +605,6 @@
         </div>
       </div>
     </div>
-    <aside class="inspector" data-edit-only>
-      <h3>Selected</h3>
-      <div class="who" id="who"></div>
-      <div class="level" id="levelText">0%</div>
-      <input class="big" id="intensity" type="range" min="0" max="255" value="0">
-      <div class="row">
-        <button data-lv="255">Full</button>
-        <button data-lv="191">75</button>
-        <button data-lv="128">50</button>
-        <button data-lv="64">25</button>
-        <button data-lv="0">Out</button>
-      </div>
-      <div id="colorBox">
-        <h3>Colour</h3>
-        <input id="picker" type="color" value="#ffffff">
-        <div class="swatches" id="swatches"></div>
-      </div>
-      <div id="faderBox">
-        <h3>Faders</h3>
-        <div class="note">House lights, work lights, preshow… They sit outside the cues and add to them. Select channels, set their levels, then press Set on a fader.</div>
-        <div id="faderList"></div>
-        <p data-edit-only><button id="addFader">+ Add fader</button></p>
-      </div>
-    </aside>
     <section id="liveScript" data-show-only></section>
   </main>
 
@@ -493,6 +629,7 @@
       <tr><td>A or @</td><td>at</td></tr><tr><td>T</td><td>thru</td></tr><tr><td>F / O</td><td>full / out</td></tr>
       <tr><td>+ / -</td><td>add / take away channels (also = for +)</td></tr>
       <tr><td>Shift+O</td><td>solo: everything not selected goes out</td></tr>
+      <tr><td>Shift+M</td><td>ML controls: colour, movers and every channel of the selected lights</td></tr>
       <tr><td>Q</td><td>cue</td></tr><tr><td>G</td><td>group</td></tr><tr><td>P</td><td>colour palette</td></tr>
       <tr><td>R</td><td>record</td></tr><tr><td>U</td><td>update</td></tr><tr><td>X</td><td>release</td></tr><tr><td>S</td><td>seconds (fade time)</td></tr>
       <tr><td>L</td><td>label: type the name, then Enter</td></tr><tr><td>C</td><td>copy</td></tr><tr><td>J</td><td>jump</td></tr><tr><td>D</td><td>delete</td></tr>
@@ -527,7 +664,9 @@
       irgb:   { ch: 4, i: 0, r: 1, g: 2, b: 3 },
     };
 
-    let dmx = new Array(512).fill(0); // live levels, always from the server
+    const OUTPUTS = 8; // outputs the level table has room for (same as the server)
+    let dmx = new Array(512 * OUTPUTS).fill(0); // live levels, always from the server: output n's address a is slot (n - 1) * 512 + a
+    let out = []; // what really goes out of the server: cues and hand levels lifted by faders, or only the light check while it runs
     let patch = [];                    // fixtures from show.json
     let cues = [];
     let currentCue = -1;
@@ -540,6 +679,21 @@
     // the built-in generics come from TYPES above.
     const T = (f) => f.profile || TYPES[f.type] || { ch: f.ch || 1, i: 0 };
     const typeName = (f) => f.profile ? `${f.profile.model} · ${f.profile.mode}` : f.type;
+    // Parts: one channel driving several cells, each with its own address and type (an Eos "200 Part 3").
+    // f.parts holds every cell. The fixture's own address, type and profile mirror part 1 (syncPrimary), so
+    // code that sees a fixture as a single cell (levels, colour, the stage plot) keeps working unchanged.
+    const cellsOf = (f) => (f.parts && f.parts.length ? f.parts : [f]);
+    const partOf = (f, p) => (f.parts && f.parts.length ? Math.max(0, p) : -1); // which part a selection means: a plain fixture has none
+    const cellOf = (f, p) => (p >= 0 && f.parts ? f.parts[p] : f);
+    const cellUni = (f, c) => c.universe || f.universe || 1;
+    const slotOf = (f, c = f) => (cellUni(f, c) - 1) * 512 + c.address; // a cell's first slot in the level table (1-based)
+    const cellName = (k, p) => (p >= 0 && patch[k].parts ? `${k + 1} ${patch[k].parts[p].name || "P" + (p + 1)}` : String(k + 1));
+    function syncPrimary(f) {
+      if (!f.parts || !f.parts.length) return;
+      const c = f.parts[0];
+      f.address = c.address; f.universe = c.universe || f.universe || 1; f.type = c.type; f.addrFixed = true;
+      if (c.profile) f.profile = { ...c.profile }; else delete f.profile;
+    }
     const GENERIC = "Generic";
     let lib = { [GENERIC]: { Dimmer: { "1 channel": "dimmer" }, RGB: { "3 channel": "rgb" }, RGBW: { "4 channel": "rgbw" }, "Dimmer + RGB": { "4 channel": "irgb" } } };
     fetch("/fixtures.json").then((r) => (r.ok ? r.json() : {})).then((data) => {
@@ -548,13 +702,23 @@
     }).catch(() => {});
     const hasColor = (f) => "r" in T(f);
     const hasDimmer = (f) => "i" in T(f);
-    const chan = (f, key) => view()[f.address - 1 + T(f)[key]] ?? 0;
+    const chan = (f, key) => view()[slotOf(f) - 1 + T(f)[key]] ?? 0;
 
     function level(i) {
       const f = patch[i];
       if (!f) return 0; // empty channel
       if (hasDimmer(f)) return chan(f, "i");
       return Math.max(chan(f, "r"), chan(f, "g"), chan(f, "b"));
+    }
+    // What is really going out for a channel: the light check, a fader, a cue or a hand level, whichever is driving it.
+    // In Blind it is the look being edited, since nothing there reaches the stage.
+    function outLevel(i) {
+      const f = patch[i];
+      if (!f) return 0;
+      if (inBlind() || !out.length) return level(i);
+      const at = (off) => out[slotOf(f) - 1 + off] ?? 0;
+      if (hasDimmer(f)) return at(T(f).i);
+      return Math.max(at(T(f).r ?? 0), at(T(f).g ?? 0), at(T(f).b ?? 0));
     }
     function color(i) {
       const f = patch[i];
@@ -571,14 +735,18 @@
 
     // ---- writing: turn "this fixture at this level and colour" into channel numbers
     function channelsFor(i, lv, c) {
-      const f = patch[i], P = T(f), out = {};
-      if (hasDimmer(f)) out[f.address + P.i] = lv;
-      if (hasColor(f)) {
-        const scale = hasDimmer(f) ? 1 : lv / 255; // no dimmer channel: brightness lives in the colour channels
-        out[f.address + P.r] = Math.round(c.r * scale);
-        out[f.address + P.g] = Math.round(c.g * scale);
-        out[f.address + P.b] = Math.round(c.b * scale);
-        if ("w" in P) out[f.address + P.w] = Math.round(Math.min(c.r, c.g, c.b) * scale);
+      const out = {};
+      const f = patch[i];
+      for (const cell of cellsOf(f)) { // a multi-part fixture: every part gets the same level and colour
+        const P = T(cell), base = slotOf(f, cell);
+        if (hasDimmer(cell)) out[base + P.i] = lv;
+        if (hasColor(cell)) {
+          const scale = hasDimmer(cell) ? 1 : lv / 255; // no dimmer channel: brightness lives in the colour channels
+          out[base + P.r] = Math.round(c.r * scale);
+          out[base + P.g] = Math.round(c.g * scale);
+          out[base + P.b] = Math.round(c.b * scale);
+          if ("w" in P) out[base + P.w] = Math.round(Math.min(c.r, c.g, c.b) * scale);
+        }
       }
       return out;
     }
@@ -591,157 +759,430 @@
       sendLevels(all);
     }
 
-    // ---- stage plot
-    function buildStage() {
-      const box = $("stage");
-      box.querySelectorAll(".fx").forEach((e) => e.remove());
-      patch.forEach((f, i) => {
-        if (!f) return; // empty channel
-        const el = document.createElement("div");
-        el.className = "fx";
-        el.id = "fx" + i;
-        el.innerHTML = `${i + 1}<small></small>`;
-        el.onpointerdown = (e) => startDrag(e, i, el);
-        box.appendChild(el);
-      });
+    // ---- writing one named profile channel (i, r, g, b, w, pan, tilt) on every selected fixture
+    const hasMove = (f) => "pan" in T(f) && "tilt" in T(f);
+    // The plan: the whole room in metres, with named areas drawn on it (stage, house, wings, walls, curtains). Set on the Stage tab.
+    const mapSize = () => { if (!live.map) live.map = { w: 12, d: 8, areas: [] }; live.map.areas ||= []; return live.map; };
+    const MOVER = { height: 6, face: 0, panRange: 540, tiltRange: 270 }; // defaults; a fixture can override with its own f.height, f.face…
+    function aimAt(f, tx, ty) { // pan/tilt DMX to light spot tx,ty on the plot (percentages, like f.x / f.y)
+      const m = { ...MOVER, ...f };
+      const S = mapSize(), dx = (tx - (f.x ?? 50)) / 100 * S.w, dy = (ty - (f.y ?? 50)) / 100 * S.d;
+      let pan = Math.atan2(dx, dy) * 180 / Math.PI - m.face;           // direction to the spot; 0° = facing the audience
+      pan = ((pan + 540) % 360) - 180;                                   // -180…180
+      const tilt = Math.atan2(Math.hypot(dx, dy), m.height) * 180 / Math.PI; // 0° = straight down = home
+      return { pan: 128 + pan / (m.panRange / 2) * 127, tilt: 128 + tilt / (m.tiltRange / 2) * 127 };
+    }
+    function paramLevels(i, vals, all = {}) { // one fixture's named channels, added into `all`
+      for (const cell of cellsOf(patch[i])) {
+        const P = T(cell), base = slotOf(patch[i], cell);
+        for (const [k, v] of Object.entries(vals)) if (k in P) all[base + P[k]] = clampLv(v);
+      }
+      return all;
+    }
+    function setParam(vals) { // vals = { pan: 128, tilt: 200 }, same on every selected fixture
+      const all = {};
+      for (const i of selected) paramLevels(i, vals, all);
+      sendLevels(all);
+    }
+    function aimFixtures(who, p) { // these movers all point at one spot p = { x, y } on the plan, each from where it hangs
+      const all = {};
+      for (const i of who) if (patch[i] && hasMove(patch[i])) paramLevels(i, aimAt(patch[i], p.x, p.y), all);
+      if (Object.keys(all).length) sendLevels(all); // a conventional's arrow is only a note of where it is focused
+      paintStage();
+      if ($("mlPanel").classList.contains("on")) paintMap($("mlPad"));
+    }
+    function homeSelected() { // straight down from where each one hangs
+      for (const i of selected) if (patch[i]) delete patch[i].aim;
+      setParam({ pan: 128, tilt: 128 });
+      socket.emit("savePatch", patch);
       paintStage();
     }
-    function paintStage() {
-      patch.forEach((f, i) => {
-        const el = f && $("fx" + i);
-        if (!el) return;
-        const lv = level(i), c = color(i) || { r: 255, g: 225, b: 170 }; // plain dimmers glow warm white
-        el.style.left = (f.x ?? 50) + "%";
-        el.style.top = (f.y ?? 50) + "%";
+    function setRaw(off, v) { // a channel the profile has no name for, by its offset from the start address
+      const all = {};
+      for (const i of selected) for (const cell of cellsOf(patch[i])) if (off < T(cell).ch) all[slotOf(patch[i], cell) + off] = clampLv(v);
+      sendLevels(all);
+    }
+
+    // ---- maps: the Stage tab's plan and the ML pad are the same drawing at two sizes.
+    // Positions are percentages of the plan (f.x, f.y, f.aim), so one number works on both.
+    const BEAM_COLOURS = ["#e3a21a", "#4ea3ff", "#ff5e5e", "#5ee07a", "#d070ff", "#ff9f40", "#40e0d0", "#ff6ad5"];
+    const beamColour = (i) => BEAM_COLOURS[patch.slice(0, i).filter((f) => f && hasMove(f)).length % BEAM_COLOURS.length]; // the nth mover gets the nth colour
+    const pos = (f) => ({ x: f.x ?? 50, y: f.y ?? 50 });
+    const pctIn = (rect, ev) => ({ x: Math.max(0, Math.min(100, (ev.clientX - rect.left) / rect.width * 100)), y: Math.max(0, Math.min(100, (ev.clientY - rect.top) / rect.height * 100)) });
+    let dragAim = null; // { who: Set, x, y } while beams are being dragged, before the spot is saved into the patch
+    const aimOf = (i, f) => (dragAim && dragAim.who.has(i) ? dragAim : f.aim || pos(f));
+    function arrow(x1, y1, x2, y2, col, op, gap, dashed) { // px: a line with a head, stopping `gap` short of the end so the tip meets the handle
+      const dx = x2 - x1, dy = y2 - y1, len = Math.hypot(dx, dy);
+      if (len < gap + 8) return "";
+      const ux = dx / len, uy = dy / len, ex = x2 - ux * gap, ey = y2 - uy * gap, h = 7, w = 4;
+      return `<line x1="${x1}" y1="${y1}" x2="${ex - ux * h}" y2="${ey - uy * h}" stroke="${col}" stroke-width="1.5"${dashed ? ' stroke-dasharray="4 3"' : ""} opacity="${op}"/>`
+        + `<polygon points="${ex},${ey} ${ex - ux * h - uy * w},${ey - uy * h + ux * w} ${ex - ux * h + uy * w},${ey - uy * h - ux * w}" fill="${col}" opacity="${op}"/>`;
+    }
+    const selectedMovers = () => [...selected].filter((i) => patch[i] && hasMove(patch[i]));
+
+    function fitMap(box, width, height) { // size a map so that 1 m is the same length on both axes, and the grid is 1 m
+      const S = mapSize(), k = Math.min(width / S.w, height / S.d);
+      box.style.width = k * S.w + "px"; box.style.height = k * S.d + "px";
+      box.style.backgroundSize = `${k}px ${k}px`;
+    }
+    function fitStage() { const w = $("mapWrap"); if (w.clientWidth) { fitMap($("stage"), w.clientWidth - 32, w.clientHeight - 30); paintMap($("stage")); } }
+    new ResizeObserver(fitStage).observe($("mapWrap"));
+
+    let mapEditing = false; // Edit map on the Stage tab: only then can lights, arrows, beams and areas be dragged on the plan
+    const canEdit = (box) => box.id !== "stage" || mapEditing; // the ML pad is always live
+    function clickSelect(e, i) { // a click on a light: just this one, or shift-click to add and remove
+      if (!e.shiftKey) selected.clear();
+      selected.has(i) ? selected.delete(i) : selected.add(i);
+      paintAll();
+    }
+    function buildMap(box, which) { // which: the fixture indexes to draw. The plan draws every light, the ML pad just the movers
+      const plan = box.id === "stage";
+      box.querySelectorAll(".fx, .beam").forEach((e) => e.remove());
+      paintAreas(box);
+      for (const i of which) {
+        const f = patch[i];
+        const el = document.createElement("div");
+        el.className = "fx" + (hasMove(f) ? " mover" : "");
+        el.dataset.fx = i;
+        el.innerHTML = `${i + 1}<small></small>`;
+        if (plan) el.onpointerdown = (e) => startDrag(e, i, el, box);
+        box.appendChild(el);
+        const b = document.createElement("div"); // a mover's beam dot, or the tip of a conventional's facing arrow
+        b.dataset.beam = i;
+        if (hasMove(f)) {
+          b.className = "beam"; b.textContent = i + 1; b.style.borderColor = beamColour(i);
+          b.title = `${f.name}: drag to aim it`;
+          // dragging one selected mover's dot moves every selected mover to the same spot; outside Edit map it selects the mover
+          b.onpointerdown = (e) => (canEdit(box) ? startAim(e, selected.has(i) ? selectedMovers() : [i], box) : (e.stopPropagation(), clickSelect(e, i)));
+        } else {
+          if (!plan) continue; // the ML pad only shows movers
+          b.className = "turn";
+          b.title = `${f.name}: drag round the light to turn it`;
+          b.onpointerdown = (e) => startTurn(e, i, box);
+        }
+        box.appendChild(b);
+      }
+    }
+    let showArrows = false; // the plan's Arrows toggle; remembered on this screen only
+    try { showArrows = localStorage.getItem("mapArrows") === "1"; } catch {}
+    function paintMap(box) {
+      const plan = box.id === "stage";
+      let lines = "";
+      for (const el of box.querySelectorAll(".fx")) {
+        const i = Number(el.dataset.fx), f = patch[i];
+        if (!f) continue;
+        const lv = outLevel(i), c = color(i) || { r: 255, g: 225, b: 170 }, p = pos(f); // plain dimmers glow warm white
+        el.style.left = p.x + "%"; el.style.top = p.y + "%";
         el.style.background = `rgb(${c.r * lv / 255 | 0}, ${c.g * lv / 255 | 0}, ${c.b * lv / 255 | 0})`;
         el.classList.toggle("sel", selected.has(i));
         el.querySelector("small").textContent = `${f.name} ${Math.round(lv / 255 * 100)}%`;
-      });
+      }
+      const W = box.clientWidth, H = box.clientHeight; // arrows are drawn in px so the heads keep their shape
+      for (const b of box.querySelectorAll(".beam, .turn")) {
+        const i = Number(b.dataset.beam), f = patch[i];
+        if (!f) continue;
+        const p = pos(f), lv = outLevel(i), op = (0.35 + lv / 255 * 0.65).toFixed(2);
+        if (hasMove(f)) { // a mover: its beam dot, and a line out to it only when asked for (too many lights otherwise)
+          const a = aimOf(i, f), col = beamColour(i);
+          b.style.left = a.x + "%"; b.style.top = a.y + "%";
+          b.style.background = lv ? col : "#000"; b.style.color = lv ? "#000" : "#fff"; // filled when the light is on
+          b.classList.toggle("sel", selected.has(i));
+          if (W && (!plan || showArrows)) lines += arrow(p.x / 100 * W, p.y / 100 * H, a.x / 100 * W, a.y / 100 * H, col, op, 11, true);
+          continue;
+        }
+        // a conventional: a short arrow the way the unit faces. None for a bar or a ball with no direction, unless it is
+        // selected, when a faint one appears so the tip can be grabbed
+        const sel = selected.has(i) && mapEditing, has = f.facing != null;
+        b.style.display = sel ? "" : "none";
+        if (!W || (!has && !sel)) continue;
+        const rad = (has ? f.facing : 0) * Math.PI / 180, r = 21, cx = p.x / 100 * W, cy = p.y / 100 * H;
+        const tx = cx + Math.sin(rad) * (r + 26), ty = cy + Math.cos(rad) * (r + 26);
+        b.style.left = tx / W * 100 + "%"; b.style.top = ty / H * 100 + "%";
+        lines += arrow(cx + Math.sin(rad) * r, cy + Math.cos(rad) * r, tx, ty, has ? "#b0b0b0" : "#555", has ? op : 0.7, sel ? 6 : 0, false);
+      }
+      box.querySelector("svg").innerHTML = lines;
     }
-    function startDrag(e, i, el) {
-      e.preventDefault();
-      const rect = $("stage").getBoundingClientRect();
+    function buildStage() { buildMap($("stage"), patch.map((f, i) => (f ? i : -1)).filter((i) => i >= 0)); fitStage(); paintStage(); }
+    function paintStage() { paintMap($("stage")); paintMoverBar(); }
+
+    function startDrag(e, i, el, box) { // move a light to where it hangs; a click without moving selects it
+      e.preventDefault(); e.stopPropagation();
+      const rect = box.getBoundingClientRect();
       let moved = false;
       const move = (ev) => {
-        if (!moved && Math.abs(ev.clientX - e.clientX) + Math.abs(ev.clientY - e.clientY) < 4) return;
+        if (!mapEditing || (!moved && Math.abs(ev.clientX - e.clientX) + Math.abs(ev.clientY - e.clientY) < 4)) return;
         moved = true;
-        patch[i].x = Math.round(Math.max(3, Math.min(97, (ev.clientX - rect.left) / rect.width * 100)));
-        patch[i].y = Math.round(Math.max(6, Math.min(90, (ev.clientY - rect.top) / rect.height * 100)));
-        el.style.left = patch[i].x + "%";
-        el.style.top = patch[i].y + "%";
+        const p = pctIn(rect, ev);
+        patch[i].x = Math.round(Math.max(2, Math.min(98, p.x)));
+        patch[i].y = Math.round(Math.max(4, Math.min(94, p.y)));
+        paintMap(box);
       };
       const up = () => {
         window.removeEventListener("pointermove", move);
         window.removeEventListener("pointerup", up);
         if (moved) return socket.emit("savePatch", patch);
-        if (!e.shiftKey) selected.clear();         // plain click: just this one
-        selected.has(i) ? selected.delete(i) : selected.add(i); // shift-click: toggle
-        paintAll();
+        clickSelect(e, i);
       };
       window.addEventListener("pointermove", move);
       window.addEventListener("pointerup", up);
     }
+    function startAim(e, who, box) { // drag the beams of these movers to a spot on the plan
+      e.preventDefault(); e.stopPropagation();
+      if (!who.length) return;
+      const rect = box.getBoundingClientRect();
+      const move = (ev) => { dragAim = { who: new Set(who), ...pctIn(rect, ev) }; aimFixtures(who, dragAim); };
+      const up = () => {
+        window.removeEventListener("pointermove", move);
+        window.removeEventListener("pointerup", up);
+        for (const i of who) if (patch[i]) patch[i].aim = { x: dragAim.x, y: dragAim.y };
+        dragAim = null;
+        socket.emit("savePatch", patch);
+      };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+      move(e);
+    }
+    function startTurn(e, i, box) { // drag the arrow tip round the light: 0 faces the audience, 90 stage left, 180 upstage
+      e.preventDefault(); e.stopPropagation();
+      const rect = box.getBoundingClientRect(), f = patch[i];
+      const move = (ev) => {
+        const cx = rect.left + (f.x ?? 50) / 100 * rect.width, cy = rect.top + (f.y ?? 50) / 100 * rect.height;
+        f.facing = Math.round(Math.atan2(ev.clientX - cx, ev.clientY - cy) * 180 / Math.PI / 5) * 5;
+        paintMap(box); paintMoverBar();
+      };
+      const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); socket.emit("savePatch", patch); };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    }
+    $("facing").onchange = (e) => {
+      const f = patch[first()];
+      if (!f) return;
+      if (e.target.value === "") delete f.facing; else f.facing = Number(e.target.value);
+      socket.emit("savePatch", patch); paintStage(); e.target.blur();
+    };
+    $("faceClear").onclick = () => { const f = patch[first()]; if (!f) return; delete f.facing; socket.emit("savePatch", patch); paintStage(); };
     $("stage").onpointerdown = (e) => {
-      if (e.target.id !== "stage") return; // clicked a fixture, not empty floor
-      selected.clear();
+      if (e.target.closest(".fx, .beam, .turn")) return;
+      if (e.altKey && mapEditing) return startAim(e, selectedMovers(), $("stage")); // alt-click the floor: aim every selected mover there
+      selected.clear(); // clicked empty floor
       paintAll();
+    };
+    $("mlPad").onpointerdown = (e) => { if (!e.target.closest(".fx, .beam")) startAim(e, selectedMovers(), $("mlPad")); };
+
+    // ---- the plan's areas: rectangles in metres from the top-left corner (upstage, stage right)
+    const KINDS = { stage: "Stage", area: "Area", wall: "Wall", curtain: "Curtain" };
+    const esc = (t) => String(t ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c])); // names typed by the user go into HTML
+    const saveMap = () => socket.emit("saveLive", { map: mapSize() });
+    function paintAreas(box) {
+      const M = mapSize(), plan = box.id === "stage";
+      box.querySelectorAll(".area").forEach((e) => e.remove());
+      M.areas.forEach((a) => {
+        const el = document.createElement("div");
+        el.className = "area " + (KINDS[a.kind] ? a.kind : "area");
+        el.style.left = a.x / M.w * 100 + "%"; el.style.top = a.y / M.d * 100 + "%";
+        el.style.width = a.w / M.w * 100 + "%"; el.style.height = a.d / M.d * 100 + "%";
+        el.innerHTML = `<b>${esc(a.name)}</b>`;
+        if (plan) el.onpointerdown = (e) => startAreaDrag(e, a, box);
+        box.insertBefore(el, box.querySelector("svg")); // under the lines and the lights
+      });
+    }
+    function startAreaDrag(e, a, box) { // in Edit map mode: drag an area around the plan, snapping to half metres
+      e.preventDefault(); e.stopPropagation();
+      const rect = box.getBoundingClientRect(), M = mapSize(), x0 = a.x, y0 = a.y;
+      const half = (v) => Math.round(v * 2) / 2;
+      const move = (ev) => {
+        a.x = half(x0 + (ev.clientX - e.clientX) / rect.width * M.w);
+        a.y = half(y0 + (ev.clientY - e.clientY) / rect.height * M.d);
+        paintAreas(box); paintAreaList();
+      };
+      const up = () => { window.removeEventListener("pointermove", move); window.removeEventListener("pointerup", up); saveMap(); };
+      window.addEventListener("pointermove", move);
+      window.addEventListener("pointerup", up);
+    }
+    function paintAreaList() {
+      const M = mapSize(), box = $("mapAreas");
+      const typing = box.contains(document.activeElement) && /INPUT|SELECT/.test(document.activeElement.tagName);
+      if (box.hidden || typing) return; // not open, or a field is being typed in
+      box.innerHTML = M.areas.map((a, k) => `<div class="arow" data-k="${k}">
+          <select data-a="kind">${Object.entries(KINDS).map(([v, t]) => `<option value="${v}"${(a.kind || "area") === v ? " selected" : ""}>${t}</option>`).join("")}</select>
+          <input data-a="name" value="${esc(a.name)}" placeholder="Name">
+          <label>x <input data-a="x" type="number" step="0.5" value="${a.x}"></label>
+          <label>y <input data-a="y" type="number" step="0.5" value="${a.y}"></label>
+          <label>w <input data-a="w" type="number" step="0.5" min="0.5" value="${a.w}"></label>
+          <label>d <input data-a="d" type="number" step="0.5" min="0.5" value="${a.d}"></label>
+          <button data-del title="Remove this area">✕</button></div>`).join("")
+        + `<button id="areaAdd">+ Add area</button><span>Metres from the top-left corner (upstage, stage right). A wall or curtain is just a thin area. Drag an area on the plan to move it.</span>`;
+    }
+    $("mapAreas").onchange = (e) => {
+      const row = e.target.closest(".arow");
+      if (!row) return;
+      const a = mapSize().areas[row.dataset.k], k = e.target.dataset.a;
+      a[k] = k === "kind" || k === "name" ? e.target.value : Number(e.target.value);
+      e.target.blur();
+      saveMap();
+    };
+    $("mapAreas").onclick = (e) => {
+      const M = mapSize();
+      if (e.target.id === "areaAdd") M.areas.push({ name: "Area", kind: "area", x: Math.round(M.w / 2 - 2), y: Math.round(M.d / 2 - 2), w: 4, d: 4 });
+      else if (e.target.dataset.del !== undefined) M.areas.splice(Number(e.target.closest(".arow").dataset.k), 1);
+      else return;
+      e.target.blur();
+      paintAreas($("stage")); paintAreaList(); saveMap();
+    };
+    $("mapEdit").onclick = () => {
+      mapEditing = $("mapEdit").classList.toggle("on");
+      $("stage").classList.toggle("editing", mapEditing);
+      $("mapAreas").hidden = !mapEditing;
+      $("mapHint").textContent = mapEditing
+        ? "Drag a light to where it hangs. Select one and drag its arrow tip to turn it. Drag a mover's dot to aim it; alt-click the floor to aim every selected mover. Drag areas to move them."
+        : "Click a light to select it. Edit map to place lights, turn them, aim movers and draw areas.";
+      paintAreaList(); fitStage(); paintStage();
+    };
+    $("mapArrows").checked = showArrows;
+    $("mapArrows").onchange = (e) => { showArrows = e.target.checked; try { localStorage.setItem("mapArrows", showArrows ? "1" : "0"); } catch {} paintStage(); };
+    $("mapW").onchange = $("mapD").onchange = () => { const M = mapSize(); M.w = Number($("mapW").value); M.d = Number($("mapD").value); saveMap(); };
+
+    // the Stage tab's bar: the geometry of the selected mover
+    function paintMoverBar() { // in Edit map, which way the selected conventional faces
+      const i = first(), f = patch[i], on = mapEditing && !!f && !hasMove(f);
+      $("moverBar").classList.toggle("on", on);
+      if (!on) return;
+      $("moverName").textContent = `${i + 1} ${f.name}`;
+      if (document.activeElement !== $("facing")) $("facing").value = f.facing ?? "";
+    }
+    function paintMoverGeo() { // in the ML panel: where the first selected mover hangs and how far it turns
+      const i = first(), f = patch[i], on = !!(f && hasMove(f));
+      $("moverGeo").hidden = !on;
+      if (on) for (const el of document.querySelectorAll("[data-m]")) if (el !== document.activeElement) el.value = f[el.dataset.m] ?? MOVER[el.dataset.m];
+    }
+    for (const el of document.querySelectorAll("[data-m]")) el.onchange = () => {
+      const i = first(), f = patch[i];
+      if (!f) return;
+      f[el.dataset.m] = Number(el.value);
+      socket.emit("savePatch", patch);
+      if (f.aim) aimFixtures([i], f.aim); // keep the beam on its spot with the new geometry
+      el.blur();
     };
 
     // ---- live table
-    function buildLive() {
-      const body = $("liveRows");
-      body.innerHTML = "";
-      patch.forEach((f, i) => {
-        if (!f) return; // empty channel
-        const tr = document.createElement("tr");
-        tr.className = "cue";
-        tr.id = "live" + i;
-        tr.innerHTML = `<td>${i + 1}</td><td>${f.name}</td><td>${f.address}</td>
-          <td class="swatch"><div></div></td>
-          <td class="val int"></td><td class="val"></td><td class="val"></td><td class="val"></td><td class="val"></td>`;
-        tr.onclick = (e) => {
-          if (!e.shiftKey) selected.clear();
-          selected.has(i) ? selected.delete(i) : selected.add(i);
-          paintAll();
-        };
-        body.appendChild(tr);
-      });
-    }
     const pct = (v) => Math.round(v / 255 * 100);
-    function paintLive() {
-      patch.forEach((f, i) => {
-        const tr = $("live" + i);
-        if (!tr) return;
-        const P = T(f), lv = level(i), c = color(i);
-        const cells = tr.querySelectorAll("td.val");
-        const show = (cell, v) => { // a blank cell means the fixture has no such parameter
-          cell.textContent = v === null ? "" : pct(v);
-          cell.classList.toggle("on", v !== null && v > 0);
-        };
-        show(cells[0], lv);
-        show(cells[1], c ? chan(f, "r") : null);
-        show(cells[2], c ? chan(f, "g") : null);
-        show(cells[3], c ? chan(f, "b") : null);
-        show(cells[4], "w" in P ? chan(f, "w") : null);
-        const glow = c || { r: 255, g: 225, b: 170 };
-        tr.querySelector("td.swatch div").style.background = `rgb(${glow.r * lv / 255 | 0}, ${glow.g * lv / 255 | 0}, ${glow.b * lv / 255 | 0})`;
-        tr.classList.toggle("sel", selected.has(i));
-      });
-    }
     // The cue picked in the header, by its number (positions move when cues are added or deleted)
     const targetIndex = () => cues.findIndex((c) => c.type === "light" && c.number === $("target").value);
-    function paintTiming() {
-      const cue = cues[targetIndex()];
-      $("timingCue").textContent = cue ? cue.number + " " + cue.label : "–";
-      $("cueFade").value = cue ? cue.fade ?? 0 : "";
-      $("cueDown").value = cue ? cue.downFade ?? cue.fade ?? 0 : "";
-    }
-    $("target").onchange = paintTiming;
-    // Changing "up" alone keeps a cue without its own down time that way (down follows up)
-    function saveTiming(e) {
-      const cue = cues[targetIndex()];
-      if (!cue) return;
-      if (e.target.id === "cueFade") cue.fade = Number($("cueFade").value) || 0;
-      else {
-        const down = $("cueDown").value === "" ? cue.fade : Number($("cueDown").value) || 0;
-        if (down !== cue.fade) cue.downFade = down;
-        else delete cue.downFade;
-      }
-      socket.emit("saveCues", cues);
-    }
-    $("cueFade").onchange = saveTiming;
-    $("cueDown").onchange = saveTiming;
 
     // ---- channel grid: one box per channel, level under the number
+    // ---- Live page. Channels in order: runs of intensity-only channels are strips of cells (a separator where the
+    // numbering skips, or where the layout says), and a run of fixtures with colour or movement is a table with
+    // that type's parameters as columns. The layout comes from the Patch tab's "Live layout" pane (show.live).
+    const PARAMS = [["i", "Intens", "Intensity"], ["r", "Red", "Color"], ["g", "Green", "Color"], ["b", "Blue", "Color"], ["w", "White", "Color"], ["pan", "Pan", "Focus"], ["tilt", "Tilt", "Focus"]];
+    let live = { onlyPatched: true, autoGaps: true, breaks: [], rows: [], tile: 72 };
+    const ownLabel = (name, i) => (!name || new RegExp(`^fixture ${i + 1}$`, "i").test(name.trim()) ? "" : name); // the default label repeats the number: leave it off
+    const stripColumns = () => Math.max(8, Math.floor(($("grid").clientWidth - 24) / ((live.tile || 72) + 5))); // as many tiles of the chosen size as fit
+    const kindOf = (f) => { if (!f) return "cells"; const P = T(f); return PARAMS.some(([k]) => k !== "i" && k in P) ? typeName(f) : "cells"; };
     function buildGrid() {
-      const box = $("grid"), n = patch.length; // up to the last patched channel, empty ones included
+      const box = $("grid");
       box.innerHTML = "";
-      for (let i = 0; i < n; i++) {
-        const cell = document.createElement("div");
-        cell.className = "cell";
-        cell.innerHTML = `<div class="num">${i + 1}</div><div class="lv"></div>`;
-        cell.onclick = (e) => {
-          if (!patch[i]) return;                       // nothing patched there
-          if (!e.shiftKey) selected.clear();
-          selected.has(i) ? selected.delete(i) : selected.add(i);
-          paintAll();
-        };
-        box.appendChild(cell);
+      box.style.setProperty("--tile", (live.tile || 72) + "px");
+      const runs = []; // [{ kind, items: [channel index] }]
+      for (let i = 0; i < patch.length; i++) {
+        const f = patch[i];
+        if (!f && live.onlyPatched) continue;
+        const kind = kindOf(f);
+        if (!runs.length || runs[runs.length - 1].kind !== kind) runs.push({ kind, items: [] });
+        runs[runs.length - 1].items.push(i);
+      }
+      for (const run of runs) {
+        if (run.kind === "cells") {
+          const strip = document.createElement("div");
+          strip.className = "strip";
+          const cols = stripColumns();
+          strip.style.gridTemplateColumns = `repeat(${cols}, minmax(0, 1fr))`;
+          let prev = -1, slot = 0; // slot: position in the row, so a separator never sits at a row's left edge
+          for (const i of run.items) {
+            if (prev >= 0 && live.rows.includes(prev + 1)) { strip.insertAdjacentHTML("beforeend", '<div class="br"></div>'); slot = 0; }
+            const cell = document.createElement("div");
+            cell.className = "cell";
+            if (prev >= 0 && slot % cols !== 0 && ((live.autoGaps && i !== prev + 1) || live.breaks.includes(prev + 1))) cell.classList.add("sep"); // a thin line before it
+            slot++;
+            cell.dataset.i = i;
+            cell.innerHTML = `<div class="num">${i + 1}</div><div class="lbl">${patch[i] ? ownLabel(patch[i].name, i) : ""}</div><div class="lv"></div>`;
+            if (patch[i]) cell.title = patch[i].name;
+            cell.onclick = () => clickChannel(i);
+            strip.appendChild(cell);
+            prev = i;
+          }
+          box.appendChild(strip);
+          continue;
+        }
+        const rows = [];
+        for (const i of run.items) cellsOf(patch[i]).forEach((cell, p) => rows.push({ i, p: patch[i].parts ? p : -1, cell, f: patch[i] }));
+        const P = T(rows[0].cell), cols = PARAMS.filter(([k]) => k in P);
+        const cats = []; // "Color" once over Red Green Blue White
+        for (const [, , cat] of cols) { if (cats.length && cats[cats.length - 1].cat === cat) cats[cats.length - 1].n++; else cats.push({ cat, n: 1 }); }
+        const block = document.createElement("div");
+        block.className = "block";
+        // header row: the type name over Ch and the intensity column, each other category over its own columns
+        const first = cats[0] && cats[0].cat === "Intensity" ? cats.shift().n : 0;
+        const grp = (k) => (cols.findIndex(([c]) => c === k) > first && cols[cols.findIndex(([c]) => c === k) - 1][2] !== cols.find(([c]) => c === k)[2] ? " grp" : "");
+        block.innerHTML = `<table>
+          <thead><tr><th class="type" colspan="${1 + first}">${run.kind}</th>${cats.map((c) => `<th class="cat grp" colspan="${c.n}">${c.cat}</th>`).join("")}</tr>
+          <tr><th>Ch</th>${cols.map(([k, label]) => `<th class="${grp(k)}">${label}</th>`).join("")}</tr></thead>
+          <tbody>${rows.map((r) => `<tr data-i="${r.i}"><td class="ch"><b>${cellName(r.i, r.p)}</b><small>${r.p >= 0 ? [ownLabel(r.f.name, r.i), r.cell.name].filter(Boolean).join(" · ") : ownLabel(r.f.name, r.i)}</small></td>${cols.map(([k]) => `<td class="v${grp(k)}" data-slot="${slotOf(r.f, r.cell) + P[k]}" data-k="${k}"></td>`).join("")}</tr>`).join("")}</tbody></table>`;
+        for (const b of block.querySelectorAll("td.ch b")) b.onclick = () => clickChannel(Number(b.closest("tr").dataset.i));
+        box.appendChild(block);
       }
     }
+    // Clicking a channel builds the command line, as on a console: 1 then 3 reads "Ch 1 + 3", a channel that is
+    // already on the line comes off again ("- 3"), and after Thru the number just follows. The highlight follows the line.
+    const SELECTION_WORDS = new Set(["Ch", "+", "-", "Thru", "Group"]);
+    function clickChannel(i) {
+      if (!patch[i]) return; // nothing patched there
+      if (line.length && !line.every((t) => SELECTION_WORDS.has(t) || isNum(t))) return hint("Finish or clear the line first (Esc)", true);
+      let have = new Set();
+      try { have = pick(line); } catch {}
+      const last = line[line.length - 1];
+      if (have.has(i)) line = lineFor([...have].filter((k) => k !== i)); // already on the line: take it off
+      else if (!line.length) line.push("Ch", String(i + 1));
+      else if (last === "Thru" || last === "+" || last === "-") line.push(String(i + 1));
+      else line.push("+", String(i + 1));
+      confirmDelete = false;
+      paintLine();
+      try { selected = pick(line); } catch {}
+      paintAll();
+    }
+    // A channel list written the short way: 1, 2, 3, 5 reads "Ch 1 Thru 3 + 5"
+    function lineFor(indexes) {
+      const nums = [...indexes].map((i) => i + 1).sort((a, b) => a - b);
+      if (!nums.length) return [];
+      const out = ["Ch"];
+      for (let k = 0; k < nums.length; k++) {
+        let end = k;
+        while (end + 1 < nums.length && nums[end + 1] === nums[end] + 1) end++;
+        if (out.length > 1) out.push("+");
+        if (end - k >= 2) { out.push(String(nums[k]), "Thru", String(nums[end])); k = end; }
+        else out.push(String(nums[k]));
+      }
+      return out;
+    }
     function paintGrid() {
-      [...$("grid").children].forEach((cell, i) => {
-        const f = patch[i], own = f ? level(i) : 0;
-        // In Live, a fader can lift a channel above its cue level: show what really goes out, in amber
-        const lifted = f && !inBlind() ? (hasDimmer(f) ? faderLevel(f.address + T(f).i) : Math.max(...dmxOf(i).map(faderLevel))) : 0;
-        const lv = Math.max(own, lifted);
+      for (const cell of $("grid").querySelectorAll(".cell[data-i]")) {
+        const i = Number(cell.dataset.i), f = patch[i], own = f ? level(i) : 0;
+        // In Live the tile shows what really goes out: a fader lifting the cue level (amber) or the light check (gold)
+        const lv = f ? outLevel(i) : 0, check = checking || checkElsewhere;
         cell.classList.toggle("patched", !!f);
         cell.classList.toggle("sel", selected.has(i));
         const lvEl = cell.querySelector(".lv");
-        lvEl.textContent = !f || lv === 0 ? "" : lv === 255 ? "FULL" : pct(lv);
-        lvEl.className = "lv " + (f && lv > 0 ? (lifted > own ? "fader" : markOf(i)) : "");
+        lvEl.textContent = !f ? "" : lv === 0 ? "0" : lv === 255 ? "FULL" : pct(lv);
+        lvEl.className = "lv " + (f && lv > 0 ? (lv !== own ? (check ? "check" : "fader") : markOf(i)) : f ? "zero" : "");
         cell.classList.toggle("stale", !!f && !inBlind() && dmxOf(i).some((ch) => staleSet.has(ch)));
-      });
+      }
+      const v = view();
+      for (const td of $("grid").querySelectorAll(".block .v")) {
+        const slot = Number(td.dataset.slot), raw = v[slot - 1] ?? 0;
+        td.textContent = td.dataset.k === "pan" || td.dataset.k === "tilt" ? raw : pct(raw);
+        const src = inBlind() ? blindMoves[slot] || (raw ? "tracked" : "zero") : manualSet.has(slot) ? "manual" : moves[slot] || (raw ? "tracked" : "zero");
+        td.className = "v " + src;
+      }
+      for (const tr of $("grid").querySelectorAll(".block tr[data-i]")) tr.classList.toggle("sel", selected.has(Number(tr.dataset.i)));
     }
     // Why a channel is at its level: manual (by hand), up / down (the last cue moved it) or tracked (from earlier)
     function markOf(i) {
@@ -760,17 +1201,22 @@
     let outputs = { ifaces: [], dmxPort: "", serial: false };
     let patchSel = -1, patchOut = 1; // the row the inspector shows, and the output the address map shows
     let patchAddr = 0;          // the empty address picked on the map (0 = none)
+    let lastMapKey = "";        // what the address map last scrolled to
+    let partSel = -1;           // which part of the selected fixture (-1 = the fixture itself)
     // A fixture's address follows its channel (channel 11 = address 11) unless it was set by hand (addrFixed).
     const autoAddr = (f, i) => !f.addrFixed && f.address === i + 1;
     const flagCell = (k, on) => `<td class="flag" title="Set in Protocols, below">${on ? "✱" : ""}</td>`; // read-only: which outputs are enabled
     // The editable cells of a fixture, Type through Remove. Both views use them.
     function fixtureCells(f, i) {
-      return `<td class="ro">${typeName(f)}</td>
+      const parts = f.parts && f.parts.length ? f.parts : null; // a multi-part fixture: the parts have their own rows under this one
+      const type = parts ? `${parts.length} parts` : typeName(f);
+      const uses = parts ? parts.reduce((n, c) => n + T(c).ch, 0) + " ch" : span(f);
+      return `<td class="ro" title="${parts ? parts.map((c) => c.name + ": " + typeName(c)).join(", ") : typeName(f)}">${type}</td>
           <td><input data-k="name"></td>
           <td><input data-k="priority" type="number" min="1" max="200" placeholder="${protocols.sacn.priority}"></td>
           ${flagCell("sacn", protocols.sacn.enabled)}${flagCell("dmx", protocols.dmx.enabled)}${flagCell("artnet", protocols.artnet.enabled)}
           <td class="out" data-out="${i}" title="What this light is putting out right now, 0-255"></td>
-          <td>${f.address} to ${f.address + T(f).ch - 1}</td>
+          <td>${uses}</td>
           <td><button title="Remove">✕</button></td>`;
     }
     function wireRow(tr, f, i) {
@@ -782,27 +1228,104 @@
           socket.emit("savePatch", patch);
         };
       }
-      tr.classList.toggle("sel", i === patchSel);
+      tr.classList.toggle("sel", i === patchSel && partSel < 0);
       tr.onclick = (e) => { if (!e.target.closest("button")) selectRow(i); };
       tr.querySelector("button").onclick = () => {
         selected.clear();
         socket.emit("removeFixture", i + 1); // the server also renumbers groups and palettes
       };
     }
-    function ownersOn(out) { // which fixture (index) sits on each address of an output, -1 for none
+    function ownersOn(out) { // which fixture (index) sits on each address of an output, -1 for none; owner.part[a] = which of its parts
       const owner = new Array(513).fill(-1);
-      for (const [k, x] of patch.entries()) if (x && (x.universe || 1) === out)
-        for (let i = 0; i < T(x).ch; i++) if (x.address + i <= 512) owner[x.address + i] = k;
+      owner.part = new Array(513).fill(-1);
+      for (const [k, x] of patch.entries()) if (x) cellsOf(x).forEach((c, p) => {
+        if (cellUni(x, c) !== out) return;
+        for (let i = 0; i < T(c).ch; i++) if (c.address + i <= 512) { owner[c.address + i] = k; owner.part[c.address + i] = x.parts ? p : -1; }
+      });
       return owner;
+    }
+    const span = (f) => T(f).ch > 1 ? `${f.address}-${f.address + T(f).ch - 1}` : String(f.address); // "101-115", or just "287" for a one-channel fixture
+
+    // ---- no two fixtures on one address. Every change that moves a fixture or makes it wider goes through
+    // placeFixture: if the run of addresses is free the change is made, otherwise it is refused and the command
+    // line offers Enter to overwrite (the fixtures in the way are re-addressed to the next free run) or Esc to keep.
+    function clashes(idx, part, address, universe, ch) { // the other cells sitting on any of these addresses: [{ k, p }]
+      const out = [];
+      for (const [k, x] of patch.entries()) if (x) cellsOf(x).forEach((c, p) => {
+        const pp = x.parts ? p : -1;
+        if (k === idx && pp === part) return; // the cell being placed
+        if (cellUni(x, c) === universe && c.address <= address + ch - 1 && address <= c.address + T(c).ch - 1) out.push({ k, p: pp });
+      });
+      return out;
+    }
+    function freeSpan(universe, ch, exclude = [], start = 1, reserved = []) { // first run of ch free addresses at or after start, 0 if none
+      const busy = new Array(1100).fill(false);
+      const mark = (a, n) => { for (let i = 0; i < n; i++) busy[a + i] = true; };
+      for (const [k, x] of patch.entries()) if (x) cellsOf(x).forEach((c, p) => {
+        const pp = x.parts ? p : -1;
+        if (exclude.some((e) => e.k === k && e.p === pp) || cellUni(x, c) !== universe) return;
+        mark(c.address, T(c).ch);
+      });
+      for (const r of reserved) mark(r.address, r.ch);
+      for (let a = start; a + ch - 1 <= 512; a++) if (!busy.slice(a, a + ch).some(Boolean)) return a;
+      return 0;
+    }
+    let pendingOverwrite = null; // a refused change waiting for Enter (overwrite) or Esc (drop it)
+    function placeFixture(idx, part, address, universe, ch, commit) {
+      const others = clashes(idx, part, address, universe, ch);
+      if (!others.length) { pendingOverwrite = null; commit(); socket.emit("savePatch", patch); return true; }
+      const reserved = [{ address, ch }], moves = []; // where each cell in the way would go
+      for (const o of others) {
+        const w = T(cellOf(patch[o.k], o.p)).ch;
+        const to = freeSpan(universe, w, [{ k: idx, p: part }, ...others], 1, reserved);
+        if (to) reserved.push({ address: to, ch: w });
+        moves.push({ ...o, to, w });
+      }
+      const them = others.length > 1 ? "them" : "it";
+      const who = others.map((o) => { const c = cellOf(patch[o.k], o.p); return `${cellName(o.k, o.p)} (${c.name || patch[o.k].name}, ${span(c)})`; }).join(", ");
+      const room = moves.every((m) => m.to);
+      const msg = `${address}-${address + ch - 1} on output ${universe} is used by channel${others.length > 1 ? "s" : ""} ${who}. ` +
+        (room ? `Enter: overwrite and move ${them} to ${moves.map((m) => m.to + "-" + (m.to + m.w - 1)).join(", ")}` : `No free run of addresses to move ${them} to`) +
+        " · Esc: keep as is";
+      pendingOverwrite = { commit, moves, universe, msg };
+      hint(msg, true);
+      paintPatchPane(); // the fields show what is really patched again
+      return false;
+    }
+    // A notice is a hint about something that just happened (a fixture patched as a dimmer, fixtures moved).
+    // It clears itself after a few seconds, or as soon as the user moves on.
+    let lastNotice = "", noticeTimer = null;
+    function notice(msg, err) {
+      hint(msg, err);
+      lastNotice = msg;
+      clearTimeout(noticeTimer);
+      noticeTimer = setTimeout(() => { if ($("hint").textContent === msg) hint(""); }, 8000);
+    }
+    function dropPending(notices = true) { // the question is moot once the user moves on: clear it and its message
+      if (notices && $("hint").textContent === lastNotice && lastNotice) { hint(""); lastNotice = ""; }
+      if (!pendingOverwrite) return;
+      if ($("hint").textContent === pendingOverwrite.msg) hint("");
+      pendingOverwrite = null;
+    }
+    function overwrite() {
+      const p = pendingOverwrite;
+      pendingOverwrite = null;
+      if (!p.moves.every((m) => m.to)) return notice(`No room on output ${p.universe}: remove or re-address the other fixture${p.moves.length > 1 ? "s" : ""} first`, true);
+      for (const m of p.moves) { const f = patch[m.k], c = cellOf(f, m.p); c.address = m.to; if (m.p < 0) f.addrFixed = true; else syncPrimary(f); }
+      p.commit();
+      socket.emit("savePatch", patch);
+      notice("Moved " + p.moves.map((m) => `channel ${cellName(m.k, m.p)} to ${span(cellOf(patch[m.k], m.p))}`).join(", "));
     }
     // The patch table: one row per channel, like a console. Empty channels show just their number; click one
     // and the inspector offers to patch a fixture there. The Address column is dim while it follows the channel.
     function buildPatch() {
+      dropPending(false); // a new patch arrived: whatever was asked no longer applies (notices stay: one may be about this patch)
       const body = $("patchRows");
       body.innerHTML = "";
       const n = Math.max(512, patch.length); // every channel, like a console; the Live grid only shows the patched ones
       for (let ch = 1; ch <= n; ch++) {
         const f = patch[ch - 1], tr = document.createElement("tr");
+        tr.dataset.ch = ch;
         if (!f) {
           tr.innerHTML = `<td class="ro addr">${ch}</td>` + "<td></td>".repeat(10);
           tr.classList.add("free");
@@ -811,30 +1334,53 @@
         } else {
           const auto = autoAddr(f, ch - 1);
           tr.innerHTML = `<td class="ro addr">${ch}</td>
-            <td class="ro${auto ? " dim" : ""}" title="${auto ? "Follows the channel. Type an address in the Patch pane below to override." : "Set by hand in the Patch pane below"}">${f.universe || 1}/${f.address}</td>` + fixtureCells(f, ch - 1);
+            <td class="ro${auto ? " dim" : ""}" title="${auto ? "Follows the channel. Type an address in the Patch pane below to override." : "Set by hand in the Patch pane below"}">${f.parts ? "parts" : (f.universe || 1) + "/" + span(f)}</td>` + fixtureCells(f, ch - 1);
           wireRow(tr, f, ch - 1);
         }
         body.appendChild(tr);
+        (f?.parts || []).forEach((c, p) => { // one row per part, under its channel
+          const pr = document.createElement("tr");
+          pr.className = "part";
+          pr.dataset.ch = ch; pr.dataset.part = p;
+          pr.innerHTML = `<td class="ro addr">P${p + 1}</td>
+            <td class="ro">${cellUni(f, c)}/${span(c)}</td>
+            <td class="ro" title="${typeName(c)}">${typeName(c)}</td>
+            <td><input data-k="name"></td>
+            <td></td><td></td><td></td><td></td><td></td>
+            <td>${span(c)}</td>
+            <td><button title="Remove this part">✕</button></td>`;
+          const inp = pr.querySelector("[data-k]");
+          inp.value = c.name || "";
+          inp.onchange = () => { c.name = inp.value; socket.emit("savePatch", patch); };
+          pr.classList.toggle("sel", patchSel === ch - 1 && partSel === p);
+          pr.onclick = (e) => { if (!e.target.closest("button")) selectRow(ch - 1, p); };
+          pr.querySelector("button").onclick = () => removePart(ch - 1, p);
+          body.appendChild(pr);
+        });
       }
       if (patchSel >= n) patchSel = n - 1;
       paintPatchPane();
     }
-    function selectRow(i) {
-      if (patchSel === i && !patchAddr) return;
-      patchSel = i; patchAddr = 0;
-      patchOut = patch[i]?.universe || patchOut; // the map follows the row
+    function selectRow(i, part = -1) {
+      dropPending();
+      if (patchSel === i && partSel === part && !patchAddr) return;
+      patchSel = i; partSel = part; patchAddr = 0;
+      const c = patch[i] ? cellOf(patch[i], part) : null;
+      patchOut = (c && cellUni(patch[i], c)) || patchOut; // the map follows the row
       markRows();
       paintPatchPane();
     }
     function selectAddr(a, out = patchOut) { // an empty address
-      patchSel = -1; patchAddr = a; patchOut = out;
+      dropPending();
+      patchSel = -1; partSel = -1; patchAddr = a; patchOut = out;
       markRows();
       paintPatchPane();
     }
     function markRows() {
-      const rows = [...$("patchRows").children];
-      rows.forEach((tr, k) => tr.classList.toggle("sel", k === patchSel)); // row k is channel k + 1
-      if (rows[patchSel]) rows[patchSel].scrollIntoView({ block: "nearest" });
+      for (const tr of $("patchRows").children)
+        tr.classList.toggle("sel", Number(tr.dataset.ch) === patchSel + 1 && Number(tr.dataset.part ?? -1) === partSel);
+      const row = $("patchRows").querySelector(`tr[data-ch="${patchSel + 1}"]` + (partSel >= 0 ? `[data-part="${partSel}"]` : ":not([data-part])"));
+      if (row) row.scrollIntoView({ block: "nearest" });
     }
     // ---- Patch pane: the 512 addresses of one output, lit where fixtures sit, and the selected row's details
     function paintPatchPane() {
@@ -846,38 +1392,51 @@
         for (let a = 1; a <= 512; a++) {
           const d = document.createElement("div");
           d.className = "a"; d.textContent = a;
-          d.onclick = () => { // repatch the selected row here, or pick this address if no row is selected
+          d.onclick = () => { // a used address selects its fixture; a free one repatches the selected row, or is picked if none is
+            const owner = ownersOn(patchOut), k = owner[a];
+            if (k >= 0 && (k !== patchSel || owner.part[a] !== partSel)) return selectRow(k, owner.part[a]); // the table scrolls to it
             const sel = patch[patchSel];
             if (!sel) return selectAddr(a);
-            sel.address = Math.min(a, 512 - T(sel).ch + 1);
-            sel.universe = patchOut;
-            if (sel.address === patchSel + 1) delete sel.addrFixed; else sel.addrFixed = true;
-            socket.emit("savePatch", patch);
+            const p = partOf(sel, partSel), cell = cellOf(sel, p);
+            const address = Math.min(a, 512 - T(cell).ch + 1), universe = patchOut;
+            placeFixture(patchSel, p, address, universe, T(cell).ch, () => {
+              cell.address = address; cell.universe = universe;
+              if (p >= 0) syncPrimary(sel); else if (address === patchSel + 1) delete sel.addrFixed; else sel.addrFixed = true;
+            });
           };
           grid.appendChild(d);
         }
       }
       for (let a = 1; a <= 512; a++) {
         const d = grid.children[a - 1];
-        d.classList.toggle("used", owner[a] >= 0 && owner[a] !== patchSel);
-        d.classList.toggle("sel", patchSel >= 0 ? owner[a] === patchSel : patchAddr === a);
+        const isSel = patchSel >= 0 ? owner[a] === patchSel && (partSel < 0 || owner.part[a] === partSel) : patchAddr === a;
+        d.classList.toggle("used", owner[a] >= 0 && !isSel);
+        d.classList.toggle("sel", isSel);
+        d.classList.toggle("first", owner[a] < 0 || cellOf(patch[owner[a]], owner.part[a]).address === a); // a free address counts as "first" so a picked one is bright
       }
+      const key = patchOut + ":" + patchSel + ":" + patchAddr; // scroll the map only when the selection changes, not on every repaint
+      if (key !== lastMapKey) { lastMapKey = key; grid.querySelector(".a.sel")?.scrollIntoView({ block: "center" }); }
       const used = owner.filter((o) => o >= 0).length;
       $("outNum").textContent = patchOut;
       $("addrRange").textContent = `Output ${patchOut}: addresses 1 to 512 · ${512 - used} free`;
-      paintTypePicker(f);
+      const cell = f ? cellOf(f, partOf(f, partSel)) : null; // the part being edited, or the fixture itself
+      paintTypePicker(cell);
       for (const el of $("patchInsp").querySelectorAll("[data-i]")) {
-        el.disabled = !f;
+        el.disabled = !f || (el.dataset.i === "chan" && partSel >= 0); // a part has no channel of its own
         el.placeholder = "";
         if (!f) { el.value = ""; continue; }
         if (el.dataset.i === "chan") el.value = patchSel + 1;
-        else if (el.dataset.i === "address") { el.value = autoAddr(f, patchSel) ? "" : f.address; el.placeholder = patchSel + 1; } // blank = follows the channel
-        else el.value = f[el.dataset.i] ?? (el.dataset.i === "universe" ? 1 : "");
+        else if (el.dataset.i === "address") { el.value = partSel < 0 && autoAddr(f, patchSel) ? "" : cell.address; el.placeholder = patchSel + 1; } // blank = follows the channel
+        else if (el.dataset.i === "name") el.value = (partSel >= 0 ? cell.name : f.name) ?? "";
+        else if (el.dataset.i === "universe") el.value = cellUni(f, cell);
+        else el.value = f[el.dataset.i] ?? "";
       }
       $("inspIface").value = f ? [protocols.sacn.enabled && "sACN", protocols.dmx.enabled && "DMX", protocols.artnet.enabled && "ArtNet"].filter(Boolean).join(" ") || "none" : "";
-      $("inspNote").textContent = f ? `Uses ${f.address} to ${f.address + T(f).ch - 1} on output ${f.universe || 1}${autoAddr(f, patchSel) ? " · address follows the channel" : ""}`
+      $("inspNote").textContent = f ? (partSel >= 0 ? `${cellName(patchSel, partSel)} uses ${span(cell)} on output ${cellUni(f, cell)}` : f.parts ? `${f.parts.length} parts · P1 at ${span(cell)} on output ${cellUni(f, cell)}` : `Uses ${span(f)} on output ${f.universe || 1}${autoAddr(f, patchSel) ? " · address follows the channel" : ""}`)
         : patchAddr ? `Address ${patchOut}/${patchAddr} is free` : patchSel >= 0 ? `Channel ${patchSel + 1} is empty` : "Click a channel, or an address on the map";
       $("flashBtn").disabled = !f && !patchAddr && patchSel < 0; // a free address or empty channel can be flashed too
+      $("typeAbove").disabled = !f || !(partOf(f, partSel) > 0 || fixtureAbove(patchSel));
+      $("addPart").disabled = !f;
       $("patchHere").style.display = !f && (patchAddr || patchSel >= 0) ? "" : "none";
     }
     // ---- fixture type. Library fixtures carry a profile; generics map to TYPES. The inspector shows
@@ -893,15 +1452,81 @@
       sel.value = modeOf(f) || "";
       $("inspType").disabled = $("inspMode").disabled = !f;
     }
-    function setType(f, make, model, mode) {
+    function setType(f, p, make, model, mode) { // p: which part, -1 for a plain fixture
       const spec = lib[make]?.[model]?.[mode];
       if (!f || !spec) return;
-      if (make === GENERIC && typeof spec === "string") { f.type = spec; delete f.profile; }
-      else { f.type = "lib"; f.profile = { make, model, mode, ...spec }; }
-      f.address = Math.max(1, Math.min(512 - T(f).ch + 1, f.address || 1));
+      const cell = cellOf(f, p);
+      const ch = typeof spec === "string" ? (TYPES[spec] || { ch: 1 }).ch : spec.ch; // how wide it would become
+      const address = Math.max(1, Math.min(512 - ch + 1, cell.address || 1));
+      placeFixture(patch.indexOf(f), p, address, cellUni(f, cell), ch, () => {
+        if (make === GENERIC && typeof spec === "string") { cell.type = spec; delete cell.profile; }
+        else { cell.type = "lib"; cell.profile = { make, model, mode, ...spec }; }
+        cell.address = address;
+        syncPrimary(f);
+      });
+    }
+    $("inspMode").onchange = (e) => { const f = patch[patchSel], p = partOf(f, partSel), c = cellOf(f, p); setType(f, p, makeOf(c), modelOf(c), e.target.value); e.target.blur(); };
+
+    // Copying a type. Most rigs are runs of the same unit, so a new fixture takes the type of the one
+    // above it, and "Same as above" does the same for a row that is already patched.
+    const fixtureAbove = (idx) => { for (let i = idx - 1; i >= 0; i--) if (patch[i]) return patch[i]; return null; };
+    function copyType(to, from) {
+      if (!to || !from) return;
+      to.type = from.type;
+      if (from.profile) to.profile = { ...from.profile }; else delete to.profile;
+      to.address = Math.max(1, Math.min(512 - T(to).ch + 1, to.address || 1)); // a bigger fixture may not fit at the end
+    }
+    // Changing the channel number. The server swaps the two channels, and a fixture whose address follows
+    // its channel takes the new number as its address, so that run must be free (unless the fixture it
+    // swaps with is leaving it).
+    function moveChannel(idx, to) {
+      const f = patch[idx];
+      to = Math.max(1, Math.round(to || 1));
+      if (to - 1 === idx) return;
+      if (autoAddr(f, idx)) {
+        const address = Math.max(1, Math.min(512 - T(f).ch + 1, to)), swapped = patch[to - 1];
+        const others = clashes(idx, address, f.universe || 1, T(f).ch).filter((k) => !(k === to - 1 && swapped && autoAddr(swapped, to - 1)));
+        if (others.length) {
+          paintPatchPane();
+          return notice(`Channel ${to} would put ${f.name} on ${address}-${address + T(f).ch - 1}, used by channel ${others.map((k) => k + 1).join(", ")}. Give one of them an address by hand first.`, true);
+        }
+      }
+      socket.emit("moveFixture", { from: idx + 1, to });
+      patchSel = to - 1;
+    }
+    $("typeAbove").onclick = (e) => {
+      e.target.blur();
+      const f = patch[patchSel];
+      if (!f) return;
+      const p = partOf(f, partSel), cell = cellOf(f, p);
+      const from = p > 0 ? f.parts[p - 1] : fixtureAbove(patchSel); // for a part: the part before it
+      if (!from) return;
+      const ch = T(from).ch, address = Math.max(1, Math.min(512 - ch + 1, cell.address || 1));
+      placeFixture(patchSel, p, address, cellUni(f, cell), ch, () => { copyType(cell, from); syncPrimary(f); });
+    };
+    // Parts. "+ Part" turns a fixture into a multi-part one (its cell becomes P1) and adds a cell after the
+    // last one with the same type, at the next free run of addresses on that output.
+    $("addPart").onclick = (e) => {
+      e.target.blur();
+      const f = patch[patchSel];
+      if (!f) return;
+      if (!f.parts || !f.parts.length) f.parts = [{ name: "P1", address: f.address, universe: f.universe || 1, type: f.type, ...(f.profile ? { profile: { ...f.profile } } : {}) }];
+      const last = f.parts[f.parts.length - 1], ch = T(last).ch, universe = cellUni(f, last);
+      const address = freeSpan(universe, ch, [], last.address + ch) || freeSpan(universe, ch);
+      if (!address) return notice(`Output ${universe} has no free run of ${ch} addresses`, true);
+      f.parts.push({ name: "P" + (f.parts.length + 1), address, universe, type: last.type, ...(last.profile ? { profile: { ...last.profile } } : {}) });
+      syncPrimary(f);
+      partSel = f.parts.length - 1; // the new part is selected when the patch comes back
+      socket.emit("savePatch", patch);
+    };
+    function removePart(i, p) {
+      const f = patch[i];
+      f.parts.splice(p, 1);
+      syncPrimary(f);
+      if (f.parts.length === 1) delete f.parts; // one cell left: a plain fixture again
+      if (!f.parts || partSel >= f.parts.length) partSel = -1;
       socket.emit("savePatch", patch);
     }
-    $("inspMode").onchange = (e) => { const f = patch[patchSel]; setType(f, makeOf(f), modelOf(f), e.target.value); e.target.blur(); };
 
     // ---- the tile picker
     const pk = { make: GENERIC, model: null, q: "", makePage: 0, modelPage: 0, perMakes: 12, perModels: 40 };
@@ -909,7 +1534,7 @@
     function openPicker() {
       const f = patch[patchSel];
       if (!f) return;
-      pk.make = makeOf(f); pk.model = null; pk.q = ""; pk.makePage = pk.modelPage = 0;
+      pk.make = makeOf(cellOf(f, partOf(f, partSel))); pk.model = null; pk.q = ""; pk.makePage = pk.modelPage = 0;
       $("pickSearch").value = "";
       $("fixPicker").classList.add("on");
       renderPicker();
@@ -945,7 +1570,7 @@
       if (pk.model) {
         const modes = Object.keys(lib[pk.make][pk.model]);
         tileList($("pickModels"), [{ label: "‹ back", back: true }, ...modes.map((m) => ({ label: m, mode: m }))], "", () => false,
-          (it) => { if (it.back) { pk.model = null; return renderPicker(); } setType(patch[patchSel], pk.make, pk.model, it.mode); closePicker(); });
+          (it) => { if (it.back) { pk.model = null; return renderPicker(); } setType(patch[patchSel], partOf(patch[patchSel], partSel), pk.make, pk.model, it.mode); closePicker(); });
         $("pickModelPg").textContent = "";
         $("pickCrumb").textContent = `${pk.make} › ${pk.model} › choose a mode`;
       } else {
@@ -956,7 +1581,7 @@
         tileList($("pickModels"), models.slice(pk.modelPage * pk.perModels, (pk.modelPage + 1) * pk.perModels), "", (m) => f && makeOf(f) === pk.make && modelOf(f) === m,
           (m) => {
             const modes = Object.keys(lib[pk.make][m]);
-            if (modes.length === 1) { setType(patch[patchSel], pk.make, m, modes[0]); return closePicker(); }
+            if (modes.length === 1) { setType(patch[patchSel], partOf(patch[patchSel], partSel), pk.make, m, modes[0]); return closePicker(); }
             pk.model = m; renderPicker();
           });
         $("pickModelPg").textContent = `${pk.modelPage + 1} / ${fPages} · ${models.length} models`;
@@ -965,6 +1590,10 @@
     }
     $("inspType").onclick = openPicker;
     $("pickClose").onclick = closePicker;
+    // A click anywhere outside the picker closes it (mousedown, so it goes before whatever was clicked)
+    document.addEventListener("mousedown", (e) => {
+      if ($("fixPicker").classList.contains("on") && !e.target.closest("#fixPicker") && e.target.id !== "inspType") closePicker();
+    });
     $("pickSearch").oninput = (e) => { pk.q = e.target.value.trim().toLowerCase(); pk.makePage = pk.modelPage = 0; pk.model = null; renderPicker(); };
     $("pickSearch").onkeydown = (e) => { if (e.key === "Escape") closePicker(); e.stopPropagation(); };
     for (const b of document.querySelectorAll(".pager button")) b.onclick = () => {
@@ -974,15 +1603,23 @@
       b.blur();
     };
     for (const el of $("patchInsp").querySelectorAll("[data-i]")) el.onchange = () => {
+      el.blur(); // so Enter and Esc reach the command line, where an address clash asks what to do
       const f = patch[patchSel];
       if (!f) return;
-      if (el.dataset.i === "chan") { socket.emit("moveFixture", { from: patchSel + 1, to: Number(el.value) }); patchSel = Math.max(0, Number(el.value) - 1); return; }
-      if (el.dataset.i === "address") {
-        if (el.value === "") { delete f.addrFixed; f.address = patchSel + 1; } // blank: follow the channel again
-        else { f.addrFixed = true; f.address = Number(el.value); }
-      } else f[el.dataset.i] = el.type === "number" ? Number(el.value) : el.value;
-      f.address = Math.max(1, Math.min(512 - T(f).ch + 1, f.address || 1));
-      if (el.dataset.i === "universe") patchOut = f.universe || 1;
+      const p = partOf(f, partSel), cell = cellOf(f, p);
+      if (el.dataset.i === "chan") return moveChannel(patchSel, Number(el.value));
+      if (el.dataset.i === "address" || el.dataset.i === "universe") {
+        const fixed = p >= 0 || (el.dataset.i === "address" ? el.value !== "" : !!f.addrFixed); // parts always own their address; a blank address on a plain fixture follows the channel again
+        const raw = el.dataset.i === "address" ? (fixed ? Number(el.value) : patchSel + 1) : cell.address;
+        const address = Math.max(1, Math.min(512 - T(cell).ch + 1, raw || 1));
+        const universe = el.dataset.i === "universe" ? Math.max(1, Math.min(OUTPUTS, Number(el.value) || 1)) : cellUni(f, cell);
+        return placeFixture(patchSel, p, address, universe, T(cell).ch, () => {
+          cell.address = address; cell.universe = universe; patchOut = universe;
+          if (p >= 0) syncPrimary(f); else if (fixed) f.addrFixed = true; else delete f.addrFixed;
+        });
+      }
+      if (el.dataset.i === "name" && partSel >= 0) cell.name = el.value; // a part's own label; the fixture's label is the channel's
+      else f[el.dataset.i] = el.type === "number" ? Number(el.value) : el.value;
       socket.emit("savePatch", patch);
     };
     const showOutput = (n) => { patchOut = Math.max(1, n); patchAddr = 0; buildPatch(); };
@@ -996,7 +1633,7 @@
       const known = channelsFor(patchSel, lv, { r: 255, g: 255, b: 255 }); // dimmer and colour, if the type says where they are
       if (Object.keys(known).length) return known;
       const out = {}; // type not set yet (or no dimmer in the profile): raise everything the fixture occupies
-      for (let i = 0; i < T(f).ch; i++) if (f.address + i <= 512) out[f.address + i] = lv;
+      for (let i = 0; i < T(f).ch; i++) if (f.address + i <= 512) out[slotOf(f) + i] = lv;
       return out;
     }
     $("flashBtn").onclick = (e) => { // blink between full and 30 for two seconds, then back to normal
@@ -1014,9 +1651,15 @@
     };
     // A new fixture takes the channel that matches its address (address 11 = channel 11), leaving empty channels
     // in between if it has to. If that channel is taken, the next free one after it.
-    function addFixtureAt(address, universe) {
+    function addFixtureAt(address, universe, nextFree = false) {
       let ch = address;
       while (patch[ch - 1]) ch++;
+      const from = fixtureAbove(ch - 1) || patch.filter(Boolean).at(-1); // the unit before it: the new one copies its type
+      const want = from ? T(from).ch : 1;
+      if (nextFree) { // "+ Add fixture": the first run of addresses that fits, at or after the channel number
+        address = freeSpan(universe, want, [], address) || freeSpan(universe, 1, [], 1);
+        if (!address) return notice(`Output ${universe} is full`, true);
+      }
       patch[ch - 1] = {
         name: "Fixture " + ch,
         type: "dimmer",
@@ -1024,12 +1667,15 @@
         x: 10 + (ch * 11) % 80,
         y: 60,
       };
+      if (from && want > 1 && (clashes(ch - 1, address, universe, want).length || address + want - 1 > 512))
+        notice(`No room at ${address} for a ${typeName(from)}: patched as a dimmer`, true);
+      else copyType(patch[ch - 1], from);
       patchSel = ch - 1; patchAddr = 0; // the new one is selected when the server sends the patch back
       socket.emit("savePatch", patch);
     }
     $("addFixture").onclick = () => {
       const last = patch.filter(Boolean).at(-1);
-      addFixtureAt(patch.length + 1, last ? last.universe || 1 : 1); // the next channel, address to match
+      addFixtureAt(patch.length + 1, last ? last.universe || 1 : 1, true); // the next channel, first free run of addresses
     };
     $("patchHere").onclick = (e) => {
       e.target.blur();
@@ -1058,6 +1704,28 @@
       $("patchSummary").innerHTML = `${patch.filter(Boolean).length} fixtures · outputs ${outs.join(", ") || "–"} · ${state("sACN", protocols.sacn.enabled)} · ${state("ArtNet", protocols.artnet.enabled)} · ${state("Local DMX", protocols.dmx.enabled)}${protocols.dmx.enabled ? (outputs.dmxPort ? " on " + outputs.dmxPort : " (no port)") : ""}`;
     }
     const pget = (path) => path.split(".").reduce((o, k) => o[k], protocols);
+    // The Live layout pane shows show.live and saves a field as soon as it changes
+    const numList = (s) => String(s).split(/[\s,]+/).map(Number).filter((n) => n >= 1);
+    function paintLiveLayout() {
+      for (const el of document.querySelectorAll("[data-l]")) {
+        const v = live[el.dataset.l];
+        if (el.type === "checkbox") { el.checked = !!v; el.nextElementSibling.nextElementSibling.textContent = v ? "On" : "Off"; }
+        else if (el.dataset.l === "tile") el.value = String(v || 72);
+        else if (el.tagName === "SELECT") el.value = v ? "1" : "0";
+        else el.value = (v || []).join(", ");
+      }
+      const M = mapSize();
+      if (document.activeElement !== $("mapW")) $("mapW").value = M.w;
+      if (document.activeElement !== $("mapD")) $("mapD").value = M.d;
+      fitStage(); paintAreas($("stage")); paintAreaList();
+      if ($("mlPanel").classList.contains("on")) { fitMap($("mlPad"), 260, 200); paintAreas($("mlPad")); paintMap($("mlPad")); }
+    }
+    for (const el of document.querySelectorAll("[data-l]")) el.onchange = () => {
+      const k = el.dataset.l;
+      const v = el.type === "checkbox" ? el.checked : k === "tile" ? Number(el.value) : el.tagName === "SELECT" ? el.value === "1" : numList(el.value);
+      socket.emit("saveLive", { [k]: v });
+      el.blur();
+    };
     function paintProtocols() {
       for (const el of document.querySelectorAll("[data-p]")) {
         const v = pget(el.dataset.p);
@@ -1097,28 +1765,6 @@
     const hex = ({ r, g, b }) => "#" + [r, g, b].map((v) => Math.round(v).toString(16).padStart(2, "0")).join("");
     const rgb = (h) => ({ r: parseInt(h.slice(1, 3), 16), g: parseInt(h.slice(3, 5), 16), b: parseInt(h.slice(5, 7), 16) });
 
-    function paintPanel() {
-      const list = [...selected];
-      $("who").textContent = list.length
-        ? list.map((i) => `${i + 1} ${patch[i].name}`).join(", ")
-        : "Click channels (shift-click for more), or type 1 T 4 Enter for channels 1 to 4";
-      const lv = list.length ? level(list[0]) : 0;
-      $("intensity").value = lv;
-      $("levelText").textContent = Math.round(lv / 255 * 100) + "%";
-      const colourful = list.find((i) => hasColor(patch[i]));
-      $("colorBox").classList.toggle("off", colourful === undefined);
-      if (colourful !== undefined) $("picker").value = hex(color(colourful));
-    }
-    $("intensity").oninput = (e) => setSelection(Number(e.target.value), null);
-    for (const b of document.querySelectorAll("[data-lv]")) b.onclick = () => setSelection(Number(b.dataset.lv), null);
-    $("picker").oninput = (e) => setSelection(null, rgb(e.target.value));
-    for (const h of ["#ffffff", "#ffb050", "#ff2020", "#ff8000", "#ffe000", "#20ff40", "#00e0ff", "#2050ff", "#a030ff", "#ff40c0"]) {
-      const s = document.createElement("div");
-      s.className = "swatch";
-      s.style.background = h;
-      s.onclick = () => setSelection(null, rgb(h));
-      $("swatches").appendChild(s);
-    }
 
     // ---- Blind: show and edit a cue's stored look while the stage keeps playing
     let blindNo = null;       // number of the cue open in Blind, null = Live
@@ -1143,7 +1789,7 @@
     function setBlind(i) { blindNo = cues[i].number; blindPos = i; }
     // The same sums as the server: every light cue up to `index`, in order
     function lookAt(index) {
-      const look = new Array(512).fill(0);
+      const look = new Array(512 * OUTPUTS).fill(0);
       for (let k = 0; k <= index && k < cues.length; k++)
         if (cues[k].type === "light") for (const [ch, lv] of Object.entries(cues[k].levels || {})) look[ch - 1] = lv;
       return look;
@@ -1242,9 +1888,10 @@
     const isText = (t) => typeof t === "string" && t[0] === '"';
     const hint = (msg, err) => { $("hint").textContent = msg || ""; $("hint").classList.toggle("err", !!err); };
     function paintLine() {
-      $("cmd").textContent = line.map((t) => (isText(t) ? t + '"' : t)).join(" ");
+      $("cmd").textContent = line.map((t) => (isText(t) ? t + '"' : t === "At" ? "@" : t)).join(" ");
     }
     function post(word) {
+      dropPending(); // typing a command means Enter should run it, not overwrite
       confirmDelete = false;
       line.push(word);
       paintLine();
@@ -1277,6 +1924,7 @@
       paintLine();
     }
     function run() {
+      if (pendingOverwrite) return overwrite(); // the address clash asked "Enter: overwrite"
       if (!line.length) return;
       if (line[0] === "Delete" && !confirmDelete) { // deleting asks first: Enter twice
         confirmDelete = true;
@@ -1333,7 +1981,7 @@
     }
     const clampLv = (v) => Math.max(0, Math.min(255, Math.round(v)));
     const pctLv = (n) => clampLv(Math.min(100, Number(n)) * 2.55);
-    const dmxOf = (i) => { const f = patch[i]; return Array.from({ length: T(f).ch }, (_, k) => f.address + k); };
+    const dmxOf = (i) => cellsOf(patch[i]).flatMap((c) => Array.from({ length: T(c).ch }, (_, k) => slotOf(patch[i], c) + k)); // every slot a fixture drives
     const sameNumber = (a, b) => a === b || (a !== "" && b !== "" && Number(a) === Number(b));
     // The light cue with this number (sound and mix cues belong to the other pages)
     function lightCue(n) {
@@ -1406,7 +2054,6 @@
         }
         if (label === undefined && time.up === undefined) { // just "Cue 3": pick it in the header
           $("target").value = cue.number;
-          paintTiming();
           return `Cue ${cue.number} picked`;
         }
         socket.emit("cueSettings", { number: cue.number, label, ...time });
@@ -1558,6 +2205,7 @@
       if (k === "@") return () => post("At");
       if (k === "Enter") return run;
       if (k === "Escape") return () => {
+        if (pendingOverwrite) { pendingOverwrite = null; return hint(""); } // keep the patch as it was
         if (!line.length && (checking || checkElsewhere)) return endCheck(); // Esc on an empty line ends a light check
         line = []; confirmDelete = false; paintLine(); hint("");
       };
@@ -1599,8 +2247,10 @@
     function toggleKeys() { $("keys").classList.toggle("on"); }
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && $("fixPicker").classList.contains("on")) return closePicker();
+      if (e.key === "Escape" && $("mlPanel").classList.contains("on")) return closeFull();
       const el = e.target;
       if (el.matches("input:not([type=range]):not([type=color]), textarea")) return; // typing in a field
+      if (e.key === "M" && e.shiftKey && !typingLabel()) { e.preventDefault(); return $("mlPanel").classList.contains("on") ? closeFull() : openFull(); }
       if (el.matches("select") && ["ArrowUp", "ArrowDown"].includes(e.key)) return; // choosing from a list
       if (e.metaKey) return; // Cmd shortcuts belong to the app (views, copy, quit)
       if ($("keys").classList.contains("on") && (e.key === "Escape" || e.key === "?")) { e.preventDefault(); return toggleKeys(); }
@@ -1665,7 +2315,7 @@
         tr.children[2].textContent = c.label;
         tr.dataset.number = c.number;
         tr.title = "Click: pick it in the header. Double-click: make it the next GO";
-        tr.onclick = () => { if (light) { $("target").value = c.number; paintTiming(); } };
+        tr.onclick = () => { if (light) $("target").value = c.number; };
         tr.ondblclick = () => socket.emit("setStandby", i);
         body.appendChild(tr);
       }
@@ -1685,42 +2335,6 @@
 
     // ---- faders outside the cue list (house lights, work lights, preshow)
     let faders = [], faderPos = [];
-    function buildFaders() {
-      const box = $("faderList");
-      box.innerHTML = "";
-      faders.forEach((f, k) => {
-        const row = document.createElement("div");
-        row.className = "frow";
-        row.innerHTML = `<input class="fname"><button title="Store the selected channels' stage levels in this fader">Set</button><button title="Remove this fader">✕</button>
-          <input type="range" min="0" max="100" value="0"><span class="fval"></span>`;
-        const [name, set, del, range] = row.querySelectorAll("input, button");
-        name.value = f.name;
-        name.onchange = () => socket.emit("saveFader", { index: k, name: name.value });
-        set.onclick = (e) => { e.target.blur(); setFader(k); };
-        del.onclick = (e) => { e.target.blur(); if (confirm(`Remove the fader "${f.name}"?`)) socket.emit("deleteFader", k); };
-        range.oninput = () => socket.emit("faderPos", { index: k, pos: range.value / 100 });
-        range.onchange = () => range.blur(); // let go of it, so the keyboard goes back to the command line
-        box.appendChild(row);
-      });
-      paintFaders();
-    }
-    function paintFaders() {
-      $("faderList").querySelectorAll(".frow").forEach((row, k) => {
-        const pos = faderPos[k] || 0, range = row.querySelector("input[type=range]");
-        if (document.activeElement !== range) range.value = Math.round(pos * 100);
-        row.querySelector(".fval").textContent = Math.round(pos * 100) + "%";
-      });
-    }
-    // Set: the selected channels' levels on stage go into the fader
-    function setFader(k) {
-      if (inBlind()) return hint("Faders are set from the stage: press B for Live first", true);
-      if (!selected.size) return hint("Select the channels for this fader first", true);
-      const levels = {};
-      for (const i of selected) for (const ch of dmxOf(i)) if (dmx[ch - 1] > 0) levels[ch] = dmx[ch - 1];
-      if (!Object.keys(levels).length) return hint("The selected channels are all out. Bring them up first", true);
-      socket.emit("saveFader", { index: k, levels });
-      hint(`${faders[k].name}: ${selected.size} channel${selected.size > 1 ? "s" : ""} stored`);
-    }
     // The highest level any fader gives a DMX channel right now
     function faderLevel(ch) {
       let best = 0;
@@ -1730,12 +2344,9 @@
       });
       return best;
     }
-    $("addFader").onclick = (e) => {
-      e.target.blur();
-      const name = ["House lights", "Work lights", "Preshow"][faders.length] ?? `Fader ${faders.length + 1}`;
-      socket.emit("saveFader", { index: faders.length, name });
-    };
-    socket.on("faderPos", (p) => { faderPos = p || []; paintFaders(); paintGrid(); });
+    let resizeTimer = null;
+    window.addEventListener("resize", () => { clearTimeout(resizeTimer); resizeTimer = setTimeout(() => { buildGrid(); paintGrid(); }, 150); });
+    socket.on("faderPos", (p) => { faderPos = p || []; paintGrid(); }); // faders still lift channels in the grid (amber)
 
     // ---- light check: the selected lights at full white and everything else dark. It only changes what is
     // sent to the lights; cues, levels and faders are untouched and come back as soon as it ends.
@@ -1803,25 +2414,113 @@
     function paintPatchOut() {
       for (const td of $("patchRows").querySelectorAll("[data-out]")) {
         const i = Number(td.dataset.out), f = patch[i];
-        td.textContent = f ? (hasDimmer(f) ? dmx[f.address + T(f).i - 1] : Math.max(...dmxOf(i).map((ch) => dmx[ch - 1]))) ?? 0 : "";
+        td.textContent = f ? outLevel(i) : ""; // what is really going out, light check and faders included
       }
     }
-    function paintAll() { paintStage(); paintLive(); paintGrid(); paintPanel(); paintGroupButtons(); sendCheck(); paintCheck(); paintPatchOut(); }
+    // ---- Selected sidebar: simple controls, reads from the first selected channel, writes to all
+    const BASIC = { White: "#ffffff", Red: "#ff0000", Amber: "#ffbf00", Yellow: "#ffff00", Green: "#00ff00", Cyan: "#00ffff", Blue: "#0000ff", Magenta: "#ff00ff" };
+    const first = () => [...selected][0];
+    $("selLevel").oninput = (e) => setSelection(Number(e.target.value));
+    $("selLevel").onchange = (e) => e.target.blur(); // let ← / → go back to stepping channels
+    $("selFull").onclick = () => setSelection(255);
+    $("selOut").onclick = () => setSelection(0);
+
+    function paintSel() {
+      const i = first(), f = patch[i];
+      $("selPanel").classList.toggle("off", !f);
+      $("selWho").textContent = f ? "Chan " + [...selected].map((k) => k + 1).join(" + ") : "Nothing selected";
+      $("selPct").textContent = f ? pct(level(i)) + "%" : "–";
+      if (f && document.activeElement !== $("selLevel")) $("selLevel").value = level(i);
+      if ($("mlPanel").classList.contains("on")) { if (selKey() !== fullFor) buildFull(); paintFull(); }
+    }
+
+    // ---- ML controls: one slider per channel type, driving every selected light at once, plus a map to aim movers
+    const NAMES = { i: "Intensity", r: "Red", g: "Green", b: "Blue", w: "White", pan: "Pan", tilt: "Tilt" };
+    const HINTS = { i: "dimmer", r: "colour mix", g: "colour mix", b: "colour mix", w: "colour mix", pan: "turn · left ↔ right", tilt: "tip · down ↔ out" };
+    let fullFor = ""; // which selection the sliders were built for
+    const selKey = () => [...selected].join(",");
+    const withKey = (k) => [...selected].find((i) => patch[i] && k in T(patch[i])); // first selected light that has this channel
+    function slider(box, label, hint, key, value, onInput) {
+      const row = document.createElement("div");
+      row.className = "slider";
+      row.innerHTML = `<span>${label}<small>${hint}</small></span><input type="range" min="0" max="255" data-key="${key}"><b></b>`;
+      const inp = row.querySelector("input"), val = row.querySelector("b");
+      inp.value = value; val.textContent = value;
+      inp.oninput = () => { val.textContent = inp.value; onInput(Number(inp.value)); };
+      inp.onchange = () => inp.blur();
+      box.appendChild(row);
+    }
+    function buildFull() {
+      const who = [...selected].filter((i) => patch[i]);
+      if (!who.length) return;
+      fullFor = selKey();
+      $("mlWho").textContent = who.length === 1 ? `${who[0] + 1} ${patch[who[0]].name}` : `${who.length} lights · ` + who.map((i) => `${i + 1} ${patch[i].name}`).join(" · ");
+      for (const id of ["mlInt", "mlColor", "mlMove", "mlRaw", "mlLegend"]) $(id).innerHTML = "";
+      for (const k of Object.keys(NAMES)) { // a slider for every channel type any selected light has
+        const i = withKey(k);
+        if (i === undefined) continue;
+        const box = k === "i" ? "mlInt" : k === "pan" || k === "tilt" ? "mlMove" : "mlColor";
+        slider($(box), NAMES[k], HINTS[k], k, chan(patch[i], k), (v) => setParam({ [k]: v }));
+      }
+      // channels the profile has no standard name for: the first selected light's. The library may know what
+      // each one does (names / hints on the mode); otherwise they are just numbered, labelled with the type
+      const f0 = patch[who[0]], P = T(f0), named = new Set(Object.keys(NAMES).filter((k) => k in P).map((k) => P[k]));
+      const spec = f0.profile ? lib[f0.profile.make]?.[f0.profile.model]?.[f0.profile.mode] || {} : {};
+      for (let off = 0; off < P.ch; off++) {
+        if (named.has(off)) continue;
+        const name = spec.names?.[off], hint = spec.hints?.[off];
+        slider($("mlRaw"), name || "Ch " + (off + 1), name ? `ch ${off + 1} · ${hint || typeName(f0)}` : typeName(f0), "raw:" + off, view()[slotOf(f0) - 1 + off] ?? 0, (v) => setRaw(off, v));
+      }
+      const movers = who.filter((i) => hasMove(patch[i]));
+      $("mlPad").style.display = $("mlHome").style.display = movers.length ? "" : "none";
+      buildMap($("mlPad"), movers);
+      fitMap($("mlPad"), 260, 200);
+      $("mlLegend").innerHTML = movers.map((i) => `<span><i style="background:${beamColour(i)}"></i>${i + 1} ${patch[i].name}</span>`).join("");
+      $("mlPick").hidden = !who.some((i) => hasColor(patch[i]));
+    }
+    function paintFull() {
+      const f0 = patch[first()];
+      if (!f0) return closeFull();
+      for (const inp of $("mlPanel").querySelectorAll(".slider input")) {
+        if (inp === document.activeElement) continue; // being dragged
+        const k = inp.dataset.key;
+        inp.value = k.startsWith("raw:") ? view()[slotOf(f0) - 1 + Number(k.slice(4))] ?? 0 : chan(patch[withKey(k)], k);
+        inp.nextElementSibling.textContent = inp.value;
+      }
+      paintMap($("mlPad"));
+      paintMoverGeo();
+      const ci = [...selected].find((i) => patch[i] && hasColor(patch[i]));
+      if (ci !== undefined && document.activeElement !== $("mlPick")) $("mlPick").value = hex(color(ci));
+    }
+    function openFull() {
+      if (!patch[first()]) return hint("Select a channel first", true);
+      buildFull(); $("mlPanel").classList.add("on"); $("mlShade").classList.add("on"); paintFull();
+    }
+    function closeFull() { $("mlPanel").classList.remove("on"); $("mlShade").classList.remove("on"); }
+    $("mlShade").onclick = closeFull; // clicking outside the panel closes it
+    $("fullBtn").onclick = openFull;
+    $("mlClose").onclick = closeFull;
+    $("mlPick").oninput = (e) => setSelection(undefined, rgb(e.target.value));
+    $("mlHome").onclick = homeSelected;
+
+    function paintAll() { paintStage(); paintGrid(); paintGroupButtons(); sendCheck(); paintCheck(); paintPatchOut(); paintSel(); }
 
     socket.on("dmx", (d) => { dmx = d; paintAll(); });
-    socket.on("marks", (m) => { manualSet = new Set(m.manual); moves = m.moves; staleSet = new Set(m.stale || []); paintGrid(); });
+    socket.on("out", (o) => { out = o || []; paintGrid(); paintStage(); paintPatchOut(); });
+    socket.on("marks", (m) => { manualSet = new Set(m.manual); moves = m.moves; staleSet = new Set(m.stale || []); paintGrid(); }); // the table colours values by these too
 
     socket.on("state", (state) => {
       cues = state.cues;
       currentCue = state.currentCue;
       patch = state.patch || [];
       protocols = state.protocols || protocols;
+      if (state.live) live = { ...live, ...state.live };
+      paintLiveLayout();
       outputs = state.outputs || outputs;
       paintProtocols();
       groups = state.groups || {};
       palettes = state.palettes || {};
       faders = state.faders || [];
-      buildFaders();
       buildGroupButtons();
       master = state.master ?? 255;
       selected = new Set([...selected].filter((i) => patch[i]));
@@ -1838,9 +2537,7 @@
 
       buildStage();
       buildGrid();
-      buildLive();
       buildPatch();
-      paintTiming();
       buildPlayback();
       refreshBlind(); // the open cue's look may have changed; this also repaints everything
     });

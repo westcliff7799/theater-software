@@ -2211,7 +2211,25 @@
         "pan": 0,
         "tilt": 2,
         "i": 10,
-        "set": { "11": 255 }
+        "set": { "11": 255 },
+        "names": ["Pan", "Pan fine", "Tilt", "Tilt fine", "Pan/tilt speed", "Colour wheel", "Gobo wheel", "Gobo rotation", "Prism", "Focus", "Dimmer", "Shutter", "Zoom", "Function", "Movement macros"],
+        "hints": [
+          "turn left ↔ right",
+          "tiny trim on top of Pan, for a smooth stop",
+          "tip down ↔ out",
+          "tiny trim on top of Tilt",
+          "how fast the head moves: 0 fastest, 255 slowest",
+          "0 white, then 7 colours and half-and-half splits; top values scroll the wheel",
+          "0 open, then 7 gobo patterns and shake; top values scroll the wheel",
+          "holds the gobo at an angle at low values, then spins it either way",
+          "0 off; higher values put the 6-way prism in and spin it",
+          "sharpens the gobo edge, nearer ↔ farther",
+          "brightness, 0 dark to 255 full",
+          "0 closed, middle values strobe faster and faster, 255 open",
+          "beam width, narrow ↔ wide (10° to 23°)",
+          "reset and menu commands, leave at 0 in a show",
+          "built-in pan/tilt patterns, 0 off"
+        ]
       }
     },
     "Rotosphere Q3": {

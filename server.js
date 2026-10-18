@@ -18,40 +18,64 @@ const { discoverDesks } = require("./discover"); // finds sound desks on the net
 const { attachListen } = require("./listen"); // speech recognition for the Follow page
 const { importScript } = require("./script-import"); // .txt/.docx/.pdf -> script lines
 
-// ---- Sign in: Google or Guest.
-// The browser gets a signed ID token from Google, we verify its signature, then we hand out our own
-// cookie ("sid"). After that Google is out of the picture: the cookie is the ticket.
-const crypto = require("crypto");
-const { OAuth2Client } = require("google-auth-library");
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID || "";
 // SANDBOX=1 runs the demo site: same app, everyone may do everything, nothing leaves the computer.
 // No DMX, no MIDI, no sound desk, no uploads, and the show is never saved (a restart resets it).
 const SANDBOX = process.env.SANDBOX === "1";
-const AUTH_ON = GOOGLE_CLIENT_ID !== "" && !SANDBOX; // no client id configured = open house, nothing gated
 if (SANDBOX) console.log("SANDBOX: demo site, no outputs, nothing is saved");
-const googleClient = new OAuth2Client(GOOGLE_CLIENT_ID);
 
-const sessions = new Map(); // sid -> { user: { email, name, picture }, guest: true/false }. Lives in memory: a restart logs everyone out.
+// The demo site takes no uploads
+function noDemoUploads(req, res, next) {
+  if (SANDBOX) return res.status(403).send("Demo site: uploads are off");
+  next();
+}
 
-// Pull one cookie out of the "a=1; b=2" string the browser sends
+app.use(express.json()); // routes read JSON bodies as req.body
+
+// --- KEYS ---
+const crypto = require("crypto");
+const ACCESS_FILE = path.join(__dirname, "access.json");
+let access = { locks: [], keys: {} };
+try {
+  access = JSON.parse(fs.readFileSync(ACCESS_FILE, "utf8"));
+} catch {
+  console.log("no access.json yet: only the admin can sign in");
+}
+function saveAccess() {
+  fs.writeFileSync(ACCESS_FILE, JSON.stringify(access, null, 2));
+}
+
+// what keys are allowed to do
+const ABILITIES = {
+  sm: "Stage manager: cue list, GO and STOP",
+  lights: "Lights: levels and recording cues",
+  "lights.patch": "Lights: patch and output devices",
+  sound: "Sound: playback and uploads",
+  "sound.mixer": "Sound: mixer and desk",
+  script: "Script: read along",
+  "script.edit": "Script: import and edit",
+  follow: "Follow: run the listener",
+  mode: "Switch Edit / Show",
+};
+const ADMIN_USER = process.env.ADMIN_USER || "";
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "";
+const AUTH_ON = !SANDBOX; //demo site
+
+const sessions = new Map();
+
 function cookieValue(req, name) {
-  const raw = req.headers.cookie || "";
-  for (const part of raw.split(";")) {
+  for (const part of (req.headers.cookie || "").split(";")) {
     const [k, v] = part.trim().split("=");
     if (k === name) return decodeURIComponent(v || "");
   }
   return "";
 }
-
-// Look up the browser's ticket. Returns the session data, or null if there is no valid cookie.
 function sessionOf(req) {
   return sessions.get(cookieValue(req, "sid")) || null;
 }
 
-// Write a new ticket and hand its number to the browser as a cookie.
-// HttpOnly: page scripts can't read it. SameSite=Lax: other sites can't send it. Max-Age: 30 days.
-function startSession(res, data) {
-  const sid = crypto.randomBytes(24).toString("hex"); // unguessable id
+//new ticket
+function startSessions(res, data) {
+  const sid = crypto.randomBytes(24).toString("hex");
   sessions.set(sid, data);
   res.setHeader(
     "Set-Cookie",
@@ -59,74 +83,83 @@ function startSession(res, data) {
   );
 }
 
-// The desktop app runs this server itself, so it is trusted: main.js asks for a ticket directly
-// and plants it in Electron's cookie jar before opening any window.
 function localTicket() {
   const sid = crypto.randomBytes(24).toString("hex");
-  sessions.set(sid, { user: { name: "Desktop" }, guest: false });
+  sessions.set(sid, { name: "Desktop", key: null, admin: true });
   return sid;
 }
 module.exports = { localTicket };
 
-// For routes that change things. A guest ticket gets you in the building, not into the booth.
-function writersOnly(req, res, next) {
-  if (SANDBOX) return res.status(403).send("Demo site: uploads are off");
-  const s = sessionOf(req);
-  if (AUTH_ON && (!s || s.guest)) return res.status(403).send("View only");
-  next();
+function allowed(s, ability) {
+  if (!AUTH_ON) return true;
+  if (!s) return false;
+  if (s.admin) return true;
+  const k = access.keys[s.key];
+  if (!k || access.locks.includes(ability)) return false;
+  return (k.can || []).includes(ability);
 }
 
-app.use(express.json()); // routes read JSON bodies as req.body
-
-app.get("/login", (req, res) => {
-  const html = fs.readFileSync(
-    path.join(__dirname, "public", "login.html"),
-    "utf8",
-  );
-  res.send(html.replaceAll("__CLIENT_ID__", GOOGLE_CLIENT_ID));
+app.post("/auth/key", (req, res) => {
+  const key = String(req.body.key || "")
+    .trim()
+    .toUpperCase();
+  const k = access.keys[key];
+  if (!k) return res.status(401).json({ ok: false, error: "Unknown key" });
+  startSessions(res, { name: k.label, key, admin: false });
+  res.json({ ok: true });
 });
 
-app.post("/auth/google", async (req, res) => {
-  try {
-    const ticket = await googleClient.verifyIdToken({
-      idToken: req.body.credential,
-      audience: GOOGLE_CLIENT_ID, // the token must have been issued for OUR client id, not some other app's
-    });
-    const p = ticket.getPayload();
-    startSession(res, {
-      user: { email: p.email, name: p.name, picture: p.picture },
-      guest: false,
-    });
-    res.json({ ok: true });
-  } catch (err) {
-    res.status(401).json({ ok: false, error: err.message });
-  }
-});
-
-app.post("/auth/guest", (req, res) => {
-  startSession(res, { user: { name: "Guest" }, guest: true });
+app.post("/auth/admin", (req, res) => {
+  const ok =
+    ADMIN_PASSWORD !== "" &&
+    req.body.user === ADMIN_USER &&
+    req.body.password == ADMIN_PASSWORD;
+  if (!ok)
+    return res
+      .status(401)
+      .json({ ok: false, error: "Wrong username or password" });
+  startSessions(res, { name: "Admin", key: null, admin: true });
   res.json({ ok: true });
 });
 
 app.get("/logout", (req, res) => {
-  sessions.delete(cookieValue(req, "sid")); // tear the ticket out of the notebook
-  res.setHeader("Set-Cookie", "sid=; Path=/; Max-Age=0"); // and tell the browser to forget it
-  res.redirect("/login");
+  sessions.delete(cookieValue(req, "sid"));
+  res.setHeader("Set-Cookie", "sid=; Path=/; Max-Age=0");
+  res.redirect("/login.html");
 });
 
-app.get("/me", (req, res) => res.json({ ...(sessionOf(req) || { user: null }), sandbox: SANDBOX })); // pages ask this to show a name, hide edit controls, or show the demo banner
+app.get("/me", (req, res) => {
+  const s = sessionOf(req);
+  const can = Object.keys(ABILITIES).filter((a) => allowed(s, a));
+  res.json({
+    name: s ? s.name : null,
+    admin: !!(s && s.admin),
+    can,
+    sandbox: SANDBOX,
+  });
+});
 
-// The gate. Runs in order, so /login and /auth/* above are already handled. Everything after
-// this line (uploads, pages in /public) needs a ticket.
+const OPEN_FILES = ["/style.css", "/login.html", "/admin.html"];
+const PAGE_NEEDS = {
+  "/sm.html": "sm",
+  "/lights.html": "lights",
+  "/sound.html": "sound",
+  "/actor.html": "script",
+  "/follow.html": "follow",
+};
 app.use((req, res, next) => {
-  if (!AUTH_ON) return next();
-  if (req.path === "/style.css") return next(); // the login page needs its stylesheet
-  if (sessionOf(req)) return next();
-  // A browser loading a page says it accepts HTML: send it to sign in. A fetch() from code does not: just refuse.
+  if (!AUTH_ON || OPEN_FILES.includes(req.path)) return next();
+  const s = sessionOf(req);
   const wantsPage =
     req.method === "GET" && (req.headers.accept || "").includes("text/html");
-  if (wantsPage) return res.redirect("/login");
-  res.status(401).send("Sign in first");
+  if (!s)
+    return wantsPage
+      ? res.redirect("/login.html")
+      : res.status(401).send("Sign in first");
+  const need = PAGE_NEEDS[req.path];
+  if (need && !allowed(s, need))
+    return res.redirect("/index.html?denied=" + need);
+  next();
 });
 
 // Anything in /public becomes a web page. public/lights.html -> /lights.html
@@ -150,7 +183,7 @@ app.post(
 
 app.put(
   "/audio/:name",
-  writersOnly,
+  noDemoUploads,
   express.raw({ type: () => true, limit: "500mb" }),
   (req, res) => {
     const name = path.basename(req.params.name).replace(/[^\w .()&'-]/g, "_");
@@ -184,12 +217,25 @@ show.protocols = {
     enabled: false,
     port: "",
     kind: "pro",
+    output: 1, // which output the USB cable carries
     ...((show.protocols || {}).dmx || {}),
   }, // kind: "pro" (Enttec DMX USB Pro and compatibles) or "open" (Open DMX)
 };
+// How the Lights page lays out Live: only patched channels, a separator where the numbering skips, and the
+// user's own separators and row breaks (channel numbers a break follows)
+show.live = { onlyPatched: true, autoGaps: true, breaks: [], rows: [], tile: 72, ...(show.live || {}) };
+// The Stage tab's plan: the room in metres, with named areas drawn on it (stage, house, wings, walls, curtains)
+if (!show.live.map) {
+  const s = show.live.stage || { w: 12, d: 8 };
+  show.live.map = { w: s.w, d: s.d, areas: [{ name: "Stage", kind: "stage", x: 0, y: 0, w: s.w, d: s.d }] };
+}
+delete show.live.stage;
 // Channel numbers are positions in show.patch, so channel 11 is show.patch[10]. An empty channel is null:
 // a fixture patched at address 11 goes to channel 11 even if 2 to 10 are empty, as on a console.
-function trimPatch() { const p = show.patch || []; while (p.length && !p[p.length - 1]) p.pop(); } // no empty channels past the last fixture
+function trimPatch() {
+  const p = show.patch || [];
+  while (p.length && !p[p.length - 1]) p.pop();
+} // no empty channels past the last fixture
 for (const f of show.patch || []) {
   if (!f) continue; // an empty channel
   // fixtures saved with the older single "protocol" field
@@ -200,27 +246,40 @@ for (const f of show.patch || []) {
 }
 // An address follows its channel (channel 11 = address 11) unless set by hand. Older shows have no flag:
 // an address that doesn't match its channel was set by hand.
-(show.patch || []).forEach((f, i) => { if (f && !f.addrFixed && f.address !== i + 1) f.addrFixed = true; });
+(show.patch || []).forEach((f, i) => {
+  if (f && !f.addrFixed && f.address !== i + 1) f.addrFixed = true;
+});
 
 // ---- DMX output. Every network card gets the data; each fixture chooses sACN or Art-Net and a universe.
 const ifaces = [];
-for (const list of Object.values(os.networkInterfaces())) {
-  for (const net of list) {
-    if (net.family !== "IPv4" || net.internal) continue;
-    const ip = (s) => s.split(".").reduce((n, o) => n * 256 + Number(o), 0);
-    const bcast = ip(net.address) | ~ip(net.netmask); // the address Art-Net broadcasts to on this card
-    ifaces.push({
-      address: net.address,
-      broadcast: [24, 16, 8, 0].map((s) => (bcast >>> s) & 255).join("."),
-    });
-    console.log("DMX output on", net.address);
+let ifaceList = "";
+function readIfaces() { // the cards this computer has right now: it may have changed networks since startup
+  ifaces.length = 0;
+  for (const list of Object.values(os.networkInterfaces())) {
+    for (const net of list) {
+      if (net.family !== "IPv4" || net.internal) continue;
+      const ip = (s) => s.split(".").reduce((n, o) => n * 256 + Number(o), 0);
+      const bcast = ip(net.address) | ~ip(net.netmask); // the address Art-Net broadcasts to on this card
+      ifaces.push({
+        address: net.address,
+        broadcast: [24, 16, 8, 0].map((s) => (bcast >>> s) & 255).join("."),
+      });
+    }
   }
+  const now = ifaces.map((i) => i.address).join(" ");
+  if (now !== ifaceList) { ifaceList = now; console.log("DMX output on", now || "no network"); }
 }
+readIfaces();
+
+// A network card going away throws from inside a socket callback, where no try/catch can reach.
+// Log it and keep running: the cue list, sound and lights must outlive a Wi-Fi hiccup.
+process.on("uncaughtException", (err) => console.log("Unexpected error (server kept running):", err.stack || err));
 
 // sACN: one sender per universe per card, made the first time that universe is used
 const sacnSenders = new Map();
 function sacnFor(universe) {
   if (!sacnSenders.has(universe)) {
+    readIfaces(); // a sender bound to an address this computer no longer has would blow up later
     const list = [];
     for (const { address } of ifaces) {
       try {
@@ -247,7 +306,9 @@ function sacnFor(universe) {
 
 // Art-Net: plain UDP broadcast on port 6454. Output 1 here is Art-Net universe 0, as on most consoles.
 const dgram = require("dgram");
-const artnet = SANDBOX ? null : dgram.createSocket({ type: "udp4", reuseAddr: true });
+const artnet = SANDBOX
+  ? null
+  : dgram.createSocket({ type: "udp4", reuseAddr: true });
 if (artnet) {
   artnet.on("error", (err) => console.log("Art-Net socket error", err.message));
   artnet.bind(6454, () => artnet.setBroadcast(true));
@@ -273,6 +334,7 @@ function sendArtnet(universe, levels) {
 // How many DMX channels a fixture uses: library fixtures carry a profile, generics are listed here (keep in step with TYPES in lights.html).
 const CHANNELS = { dimmer: 1, rgb: 3, rgbw: 4, irgb: 4 };
 const channelsOf = (f) => (f.profile && f.profile.ch) || CHANNELS[f.type] || 1;
+const cellsOf = (f) => (f.parts && f.parts.length ? f.parts : [f]); // a fixture with parts: every part has its own address and type
 
 // Local DMX: a USB DMX interface on a serial port. Enttec DMX USB Pro (and DMXking etc.) take framed
 // messages; Open DMX wants the raw DMX signal, which we make with a break on the line.
@@ -575,8 +637,11 @@ function mixSnapshot() {
   return mix;
 }
 
-// The "state of the lights": 512 channels, just like real DMX. 0 = off, 255 = full.
-const dmx = new Array(512).fill(0);
+// The "state of the lights", per output: output n's address a is slot (n - 1) * 512 + a, 0 = off, 255 = full.
+// Cues, faders and everything else key levels by slot, so an older cue (slots 1-512) is simply output 1.
+const OUTPUTS = 8; // outputs the level table has room for
+const SLOTS = 512 * OUTPUTS;
+const dmx = new Array(SLOTS).fill(0);
 let master = 255; // grand master: scales every channel on the way out, 0 = blackout
 
 // ---- Faders outside the cue list (house lights, work lights, preshow). Each fader holds a look and its
@@ -590,7 +655,7 @@ function cleanLevels(levels) {
   for (const [ch, lv] of Object.entries(levels)) {
     const c = Number(ch),
       l = Number(lv);
-    if (c >= 1 && c <= 512 && Number.isInteger(c) && Number.isFinite(l))
+    if (c >= 1 && c <= SLOTS && Number.isInteger(c) && Number.isFinite(l))
       out[c] = Math.max(0, Math.min(255, Math.round(l)));
   }
   return out;
@@ -600,13 +665,13 @@ function cleanLevels(levels) {
 let check = null;
 
 function output() {
-  const out = new Array(512).fill(0);
+  const out = new Array(SLOTS).fill(0);
   if (check) {
     for (const [ch, lv] of Object.entries(check))
-      if (ch >= 1 && ch <= 512) out[ch - 1] = lv;
+      if (ch >= 1 && ch <= SLOTS) out[ch - 1] = lv;
     return out;
   }
-  for (let i = 0; i < 512; i++) out[i] = dmx[i];
+  for (let i = 0; i < SLOTS; i++) out[i] = dmx[i];
   (show.faders || []).forEach((f, k) => {
     const pos = faderPos[k] || 0;
     if (pos > 0)
@@ -616,9 +681,16 @@ function output() {
   return out;
 }
 
+let lastOut = []; // what the views were last told is going out
+function emitOut(levels) { // the real output, for the views to show: changes only when something changes
+  if (levels.length === lastOut.length && levels.every((v, i) => v === lastOut[i])) return;
+  lastOut = levels;
+  io.emit("out", levels);
+}
 setInterval(() => {
-  if (SANDBOX) return; // nothing goes out of the demo site
   const levels = output();
+  emitOut(levels);
+  if (SANDBOX) return; // nothing goes out of the demo site
   const buckets = new Map(); // "sacn:1" -> everything going out on that protocol and universe
   const bucket = (protocol, universe) => {
     const key = protocol + ":" + universe;
@@ -634,34 +706,37 @@ setInterval(() => {
   };
   const routed = new Set(); // channels some fixture claimed
   const P = show.protocols;
-  const place = (b, f) => {
+  const place = (b, f, out) => { // f: a fixture or one of its parts; out: the output it sits on
     const set = (f.profile && f.profile.set) || null; // profile defaults: used wherever nothing else drives that channel
     for (let i = 0; i < channelsOf(f); i++) {
-      const ch = f.address - 1 + i;
-      if (ch >= 512) break;
-      b.levels[ch] = levels[ch];
-      if (set && set[i] !== undefined && levels[ch] === 0) b.fixed[ch] = set[i];
-      routed.add(ch);
+      const a = f.address - 1 + i; // address within the universe, 0-based
+      if (a >= 512) break;
+      const slot = (out - 1) * 512 + a; // where the level table keeps it
+      b.levels[a] = levels[slot];
+      if (set && set[i] !== undefined && levels[slot] === 0) b.fixed[a] = set[i];
+      routed.add(slot);
     }
   };
   for (const f of show.patch || []) {
     if (!f) continue; // an empty channel
-    const out = Math.max(1, Number(f.universe) || 1); // the Output column, 1-based
-    if (P.sacn.enabled) {
-      const b = bucket("sacn", Math.max(1, P.sacn.startUniverse + out - 1));
-      b.priority = Math.max(b.priority, f.priority || P.sacn.priority); // sACN priority is per universe: the highest wins
-      place(b, f);
+    for (const c of cellsOf(f)) { // a multi-part fixture is several cells, each with its own address
+      const out = Math.max(1, Number(c.universe || f.universe) || 1); // the Output column, 1-based
+      if (out > OUTPUTS) continue; // beyond the level table: nothing to send
+      if (P.sacn.enabled) {
+        const b = bucket("sacn", Math.max(1, P.sacn.startUniverse + out - 1));
+        b.priority = Math.max(b.priority, f.priority || P.sacn.priority); // sACN priority is per universe: the highest wins
+        place(b, c, out);
+      }
+      if (P.artnet.enabled)
+        place(bucket("artnet", Math.max(0, P.artnet.startUniverse + out - 1)), c, out);
+      if (P.dmx.enabled && out === (Number(P.dmx.output) || 1)) place(bucket("dmx", 1), c, out); // the USB cable carries one chosen output
     }
-    if (P.artnet.enabled)
-      place(bucket("artnet", Math.max(0, P.artnet.startUniverse + out - 1)), f);
-    if (P.dmx.enabled) place(bucket("dmx", 1), f); // one USB interface = one universe
   }
-  // channels no fixture claims (raw M addresses) still go out on sACN's first universe
-  if (P.sacn.enabled) {
-    const spare = bucket("sacn", Math.max(1, P.sacn.startUniverse));
-    for (let ch = 0; ch < 512; ch++)
-      if (!routed.has(ch) && levels[ch] > 0) spare.levels[ch] = levels[ch];
-  }
+  // slots no fixture claims (raw DMX addresses) still go out on sACN, each on its own output
+  if (P.sacn.enabled)
+    for (let slot = 0; slot < SLOTS; slot++)
+      if (!routed.has(slot) && levels[slot] > 0)
+        bucket("sacn", Math.max(1, P.sacn.startUniverse + Math.floor(slot / 512))).levels[slot % 512] = levels[slot];
   for (const b of buckets.values()) {
     const scaled = b.levels.map((lv) => Math.round((lv * master) / 255));
     for (const [ch, v] of Object.entries(b.fixed)) scaled[ch] = v; // a shutter must not half-close at 50% master
@@ -701,7 +776,7 @@ let moves = {}; // channel -> "up" | "down", what the last cue did (blue / green
 const isLight = (cue) => cue && cue.type === "light";
 // The cue look last brought up by GO, Fire, Jump, Back or "Go to cue". A GO only plays its own changes when
 // this is exactly the look of the cue before it; otherwise (after "Load as standby", Clear, edits...) it brings up its whole look.
-let lookOnStage = new Array(512).fill(0);
+let lookOnStage = new Array(SLOTS).fill(0);
 const sameLook = (a, b) => a.every((lv, i) => lv === b[i]);
 // Cue numbers are text; "2.50", "2.5" and "02.5" are the same cue
 const sameNumber = (a, b) =>
@@ -743,7 +818,7 @@ function findLightCue(n, index) {
 
 // The full lighting look at cue position `index`: every light cue up to it, applied in order
 function stateAt(index) {
-  const look = new Array(512).fill(0);
+  const look = new Array(SLOTS).fill(0);
   for (let k = 0; k <= index && k < show.cues.length; k++)
     if (isLight(show.cues[k]))
       for (const [ch, lv] of Object.entries(show.cues[k].levels || {}))
@@ -935,7 +1010,7 @@ function freeze() {
   for (const f of activeFades)
     for (const ch of Object.keys(f.levels))
       if (!manual.has(Number(ch))) stale.add(Number(ch));
-  if (activeFades.size) lookOnStage = new Array(512).fill(-1);
+  if (activeFades.size) lookOnStage = new Array(SLOTS).fill(-1);
   stopFades();
   emitMarks();
 }
@@ -1129,6 +1204,7 @@ function state() {
     script: show.script || [], // older show.json files have no script yet
     patch: show.patch || [], // fixtures: { name, type, address, x, y, priority, sacn, dmx, artnet, universe }
     protocols: show.protocols,
+    live: show.live,
     outputs: {
       ifaces: ifaces.map((i) => i.address),
       dmxPort: dmxPort && dmxPort.isOpen ? dmxPortPath : "",
@@ -1145,30 +1221,12 @@ function state() {
 }
 
 // Connection Block
-// Sockets send the same cookie as pages. No ticket: no connection. The session rides along on socket.data
-// so every event handler can ask who is talking.
-io.use((socket, next) => {
-  const s = sessions.get(cookieValue(socket.handshake, "sid")) || null;
-  if (AUTH_ON && !s) return next(new Error("Sign in first"));
-  socket.data.session = s || { user: { name: "Open" }, guest: false }; // auth off (or the demo site): everyone is a writer
-  next();
-});
-
 io.on("connection", (socket) => {
   console.log("a view connected");
 
-  // Guests watch. Every event a page sends is a request to change something, except the ones listed here.
-  const VIEW_EVENTS = new Set(["serialPorts"]); // listing USB ports changes nothing
-  socket.use(([event], next) => {
-    if (socket.data.session.guest && !VIEW_EVENTS.has(event)) {
-      socket.emit("denied", event); // so the page can say "view only" instead of silently doing nothing
-      return; // not calling next() drops the event: no handler below ever sees it
-    }
-    next();
-  });
-
   // Send the newcomer the current levels so it isn't blank
   socket.emit("dmx", dmx);
+  socket.emit("out", output());
   socket.emit("marks", { manual: [...manual], moves, stale: [...stale] });
   socket.emit("faderPos", faderPos);
   socket.emit("check", check);
@@ -1212,7 +1270,7 @@ io.on("connection", (socket) => {
   socket.on("setChannels", (levels) => {
     for (const [key, level] of Object.entries(levels || {})) {
       const ch = Number(key);
-      if (!(ch >= 1 && ch <= 512) || !Number.isFinite(Number(level))) continue;
+      if (!(ch >= 1 && ch <= SLOTS) || !Number.isFinite(Number(level))) continue;
       dmx[ch - 1] = Math.max(0, Math.min(255, Math.round(level)));
       takeOver([ch]);
       manual.add(ch);
@@ -1227,6 +1285,22 @@ io.on("connection", (socket) => {
   });
 
   // The fixture list was edited on the lights page
+  socket.on("saveLive", (l) => { // one or more Live layout fields
+    for (const k of ["onlyPatched", "autoGaps"]) if (typeof (l || {})[k] === "boolean") show.live[k] = l[k];
+    for (const k of ["breaks", "rows"]) if (Array.isArray((l || {})[k])) show.live[k] = l[k].map(Number).filter((n) => n >= 1);
+    if (Number((l || {}).tile) >= 40) show.live.tile = Math.min(160, Number(l.tile));
+    if ((l || {}).map && typeof l.map === "object") { // the Stage tab's plan, in metres
+      const m = l.map, w = Number(m.w), d = Number(m.d), num = (v, lo, fallback) => (Number.isFinite(Number(v)) ? Math.max(lo, Number(v)) : fallback);
+      if (w >= 2 && w <= 100 && d >= 2 && d <= 100) { show.live.map.w = w; show.live.map.d = d; }
+      if (Array.isArray(m.areas)) show.live.map.areas = m.areas.slice(0, 60).map((a) => ({
+        name: String((a || {}).name || "").slice(0, 30),
+        kind: ["stage", "area", "wall", "curtain"].includes((a || {}).kind) ? a.kind : "area",
+        x: num(a.x, -100, 0), y: num(a.y, -100, 0), w: num(a.w, 0.1, 1), d: num(a.d, 0.1, 1),
+      }));
+    }
+    saveShow();
+    broadcastState();
+  });
   socket.on("saveProtocols", (p) => {
     for (const k of ["sacn", "artnet", "dmx"])
       Object.assign(show.protocols[k], (p || {})[k] || {});
@@ -1239,10 +1313,35 @@ io.on("connection", (socket) => {
     async (reply) => typeof reply === "function" && reply(await serialPorts()),
   );
 
+  // Levels live per address, not per fixture, so when a fixture moves or changes type its old addresses
+  // would stay lit and keep going out. After any patch change: what a fixture used to drive but no longer
+  // does goes dark, and so does every address no fixture owns at all.
+  const addressesOf = (f) => { // the slots a fixture occupies, across all its parts and outputs
+    const set = new Set();
+    for (const c of cellsOf(f)) {
+      const base = ((Number(c.universe || f.universe) || 1) - 1) * 512;
+      for (let i = 0; i < channelsOf(c); i++) if (c.address + i <= 512) set.add(base + c.address + i);
+    }
+    return set;
+  };
+  const patchAddresses = () => (show.patch || []).map((f) => (f ? addressesOf(f) : null));
+  function releaseOrphans(before) {
+    const after = patchAddresses();
+    const owned = new Set(after.flatMap((a) => (a ? [...a] : [])));
+    const dark = {};
+    before.forEach((was, i) => { if (was) for (const a of was) if (!after[i] || !after[i].has(a)) dark[a] = 0; });
+    for (let a = 1; a <= SLOTS; a++) if (!owned.has(a) && dmx[a - 1] > 0) dark[a] = 0;
+    if (!Object.keys(dark).length) return;
+    fadeTo(dark, 0);
+    for (const a of Object.keys(dark)) { manual.delete(Number(a)); stale.delete(Number(a)); }
+    emitMarks();
+  }
   socket.on("savePatch", (patch) => {
     remember("patch", true);
+    const before = patchAddresses();
     show.patch = patch;
     trimPatch();
+    releaseOrphans(before);
     saveShow();
     broadcastState();
   });
@@ -1252,8 +1351,10 @@ io.on("connection", (socket) => {
   socket.on("removeFixture", (n) => {
     if (!(show.patch || [])[n - 1]) return;
     remember(`remove fixture ${n}`);
+    const before = patchAddresses();
     show.patch[n - 1] = null;
     trimPatch();
+    releaseOrphans(before);
     for (const g of Object.values(show.groups || {}))
       g.channels = g.channels.filter((c) => c !== n);
     for (const cp of Object.values(show.palettes || {}))
@@ -1269,14 +1370,18 @@ io.on("connection", (socket) => {
     to = Math.max(1, Math.min(9999, Math.round(Number(to) || 1)));
     if (!p[from - 1] || from === to) return;
     remember(`move fixture ${from} to ${to}`);
+    const before = patchAddresses().map(() => null); // a move keeps every fixture's own addresses; only what ends up unowned goes dark
     const other = p[to - 1] || null;
     p[to - 1] = p[from - 1];
     p[from - 1] = other;
     trimPatch();
-    for (const c of [from, to]) { // addresses that follow the channel follow it
+    for (const c of [from, to]) {
+      // addresses that follow the channel follow it
       const x = p[c - 1];
-      if (x && !x.addrFixed) x.address = Math.max(1, Math.min(512 - channelsOf(x) + 1, c));
+      if (x && !x.addrFixed)
+        x.address = Math.max(1, Math.min(512 - channelsOf(x) + 1, c));
     }
+    releaseOrphans(before);
     const renum = (c) => (c === from ? to : c === to ? from : c);
     for (const g of Object.values(show.groups || {}))
       g.channels = g.channels.map(renum);
@@ -1346,7 +1451,7 @@ io.on("connection", (socket) => {
       const before = stateAt(index - 1),
         live = source || targetLevels(); // a fade in progress counts as finished
       const chans = only
-        ? only.map(Number).filter((ch) => ch >= 1 && ch <= 512)
+        ? only.map(Number).filter((ch) => ch >= 1 && ch <= SLOTS)
         : live.map((_, i) => i + 1);
       const levels = only ? { ...cue.levels } : {}; // recording just some channels keeps the rest of the cue
       for (const ch of chans) {
@@ -1400,7 +1505,7 @@ io.on("connection", (socket) => {
     const look = stateAt(currentCue),
       levels = {};
     for (const ch of channels || [...manual, ...stale])
-      if (ch >= 1 && ch <= 512) levels[ch] = look[ch - 1];
+      if (ch >= 1 && ch <= SLOTS) levels[ch] = look[ch - 1];
     fadeTo(levels, Number.isFinite(time) ? time : 3);
     emitMarks();
   });
@@ -1446,7 +1551,7 @@ io.on("connection", (socket) => {
         ])
         .filter(
           ([ch, lv]) =>
-            ch >= 1 && ch <= 512 && Number.isFinite(lv) && lv !== old[ch - 1],
+            ch >= 1 && ch <= SLOTS && Number.isFinite(lv) && lv !== old[ch - 1],
         );
       if (!changes.length) return say(reply, "No change");
       remember(`blind edit cue ${cue.number}`, true);
@@ -1690,7 +1795,13 @@ io.on("connection", (socket) => {
   // Sound page "Choose desk": sweep the network and report desks as they turn up
   socket.on("scanDesks", async () => {
     if (scanning) return;
-    if (SANDBOX) return io.emit("desks", { scanning: false, found: [], scanned: 0, skipped: 0 }); // the demo site never sweeps a network
+    if (SANDBOX)
+      return io.emit("desks", {
+        scanning: false,
+        found: [],
+        scanned: 0,
+        skipped: 0,
+      }); // the demo site never sweeps a network
     scanning = true;
     const found = [];
     io.emit("desks", { scanning: true, found });
@@ -1742,7 +1853,7 @@ io.on("connection", (socket) => {
     stopFades(); // otherwise a running fade would bring the lights back
     cancelFollow();
     dmx.fill(0);
-    lookOnStage = new Array(512).fill(0); // the next GO brings up its whole look
+    lookOnStage = new Array(SLOTS).fill(0); // the next GO brings up its whole look
     manual.clear();
     stale.clear();
     moves = {};

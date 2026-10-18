@@ -85,12 +85,6 @@ body.mode-edit [data-show-only] { display: none !important; } /* the live script
 .livescript .cue.done { opacity: 0.45; text-decoration: line-through; }
 .livescript .none { padding: 16px; color: var(--dim); font-size: 13px; }
 
-/* Guests: the editing tools go away (same marker Show mode uses), and the Edit/Show switch too */
-body.guest [data-edit-only] { display: none !important; }
-body.guest .nav .mode { display: none; }
-.nav a.guest-badge { margin-left: auto; color: #e0a93a; border: 1px solid #6b5120; }
-.nav a.guest-badge[hidden] { display: none; }
-.nav a.guest-badge.flash { background: #6b5120; color: #fff; }
 /* The demo site: a band above the nav on every page, so nobody mistakes it for the real thing */
 .demo-bar { padding: 5px 12px; background: #7a3b00; color: #ffe2c2; font-size: 13px; font-weight: 600; text-align: center; letter-spacing: 0.02em; }
 .demo-bar[hidden] { display: none; }

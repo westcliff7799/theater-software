@@ -8929,6 +8929,1544 @@
       "x": 70,
       "y": 60,
       "addrFixed": true
+    },
+    {
+      "name": "Fixture 101",
+      "type": "lib",
+      "address": 101,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 81,
+      "y": 60,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLPROFILE4",
+        "mode": "16-bit (15ch)",
+        "ch": 15,
+        "i": 0,
+        "r": 2,
+        "g": 4,
+        "b": 6,
+        "w": 8
+      }
+    },
+    {
+      "name": "Fixture 102",
+      "type": "lib",
+      "address": 287,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 11,
+      "y": 71,
+      "addrFixed": true,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLPROFILE4",
+        "mode": "16-bit (15ch)",
+        "ch": 15,
+        "i": 0,
+        "r": 2,
+        "g": 4,
+        "b": 6,
+        "w": 8
+      }
+    },
+    {
+      "name": "Fixture 103",
+      "type": "lib",
+      "address": 116,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 23,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLPROFILE4",
+        "mode": "16-bit (15ch)",
+        "ch": 15,
+        "i": 0,
+        "r": 2,
+        "g": 4,
+        "b": 6,
+        "w": 8
+      }
+    },
+    {
+      "name": "Fixture 104",
+      "type": "lib",
+      "address": 131,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 34,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLPROFILE4",
+        "mode": "16-bit (15ch)",
+        "ch": 15,
+        "i": 0,
+        "r": 2,
+        "g": 4,
+        "b": 6,
+        "w": 8
+      }
+    },
+    {
+      "name": "Fixture 105",
+      "type": "lib",
+      "address": 146,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 45,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLPROFILE4",
+        "mode": "16-bit (15ch)",
+        "ch": 15,
+        "i": 0,
+        "r": 2,
+        "g": 4,
+        "b": 6,
+        "w": 8
+      }
+    },
+    {
+      "name": "Fixture 106",
+      "type": "lib",
+      "address": 161,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 56,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLPROFILE4",
+        "mode": "16-bit (15ch)",
+        "ch": 15,
+        "i": 0,
+        "r": 2,
+        "g": 4,
+        "b": 6,
+        "w": 8
+      }
+    },
+    {
+      "name": "Fixture 107",
+      "type": "lib",
+      "address": 176,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 67,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLPROFILE4",
+        "mode": "16-bit (15ch)",
+        "ch": 15,
+        "i": 0,
+        "r": 2,
+        "g": 4,
+        "b": 6,
+        "w": 8
+      }
+    },
+    {
+      "name": "Fixture 108",
+      "type": "lib",
+      "address": 191,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 78,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLPROFILE4",
+        "mode": "16-bit (15ch)",
+        "ch": 15,
+        "i": 0,
+        "r": 2,
+        "g": 4,
+        "b": 6,
+        "w": 8
+      }
+    },
+    {
+      "name": "Fixture 109",
+      "type": "lib",
+      "address": 206,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 89,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLPROFILE4",
+        "mode": "16-bit (15ch)",
+        "ch": 15,
+        "i": 0,
+        "r": 2,
+        "g": 4,
+        "b": 6,
+        "w": 8
+      }
+    },
+    {
+      "name": "Fixture 110",
+      "type": "lib",
+      "address": 221,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 20,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLPROFILE4",
+        "mode": "16-bit (15ch)",
+        "ch": 15,
+        "i": 0,
+        "r": 2,
+        "g": 4,
+        "b": 6,
+        "w": 8
+      }
+    },
+    {
+      "name": "Fixture 111",
+      "type": "lib",
+      "address": 236,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 31,
+      "y": 73,
+      "addrFixed": true,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLPROFILE4",
+        "mode": "16-bit (15ch)",
+        "ch": 15,
+        "i": 0,
+        "r": 2,
+        "g": 4,
+        "b": 6,
+        "w": 8
+      }
+    },
+    {
+      "name": "Fixture 112",
+      "type": "lib",
+      "address": 80,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 2,
+      "x": 42,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLFRESNEL1",
+        "mode": "8-bit (9ch)",
+        "ch": 9,
+        "i": 0,
+        "r": 1,
+        "g": 2,
+        "b": 3,
+        "w": 4
+      }
+    },
+    {
+      "name": "Fixture 113",
+      "type": "lib",
+      "address": 89,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 2,
+      "x": 53,
+      "y": 60,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLFRESNEL1",
+        "mode": "8-bit (9ch)",
+        "ch": 9,
+        "i": 0,
+        "r": 1,
+        "g": 2,
+        "b": 3,
+        "w": 4
+      },
+      "addrFixed": true
+    },
+    {
+      "name": "Fixture 114",
+      "type": "lib",
+      "address": 98,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 2,
+      "x": 64,
+      "y": 60,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLFRESNEL1",
+        "mode": "8-bit (9ch)",
+        "ch": 9,
+        "i": 0,
+        "r": 1,
+        "g": 2,
+        "b": 3,
+        "w": 4
+      },
+      "addrFixed": true
+    },
+    {
+      "name": "Fixture 115",
+      "type": "lib",
+      "address": 107,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 2,
+      "x": 75,
+      "y": 60,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLFRESNEL1",
+        "mode": "8-bit (9ch)",
+        "ch": 9,
+        "i": 0,
+        "r": 1,
+        "g": 2,
+        "b": 3,
+        "w": 4
+      },
+      "addrFixed": true
+    },
+    {
+      "name": "Fixture 116",
+      "type": "lib",
+      "address": 251,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 86,
+      "y": 60,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLFRESNEL1",
+        "mode": "8-bit (9ch)",
+        "ch": 9,
+        "i": 0,
+        "r": 1,
+        "g": 2,
+        "b": 3,
+        "w": 4
+      },
+      "addrFixed": true
+    },
+    {
+      "name": "Fixture 117",
+      "type": "lib",
+      "address": 117,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 2,
+      "x": 17,
+      "y": 60,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLFRESNEL1",
+        "mode": "8-bit (9ch)",
+        "ch": 9,
+        "i": 0,
+        "r": 1,
+        "g": 2,
+        "b": 3,
+        "w": 4
+      }
+    },
+    null,
+    null,
+    null,
+    {
+      "name": "Fixture 121",
+      "type": "lib",
+      "address": 1,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 2,
+      "x": 61,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Showline",
+        "model": "SL BAR 640 RGBW",
+        "mode": "16-bit, 1 group (16ch)",
+        "ch": 16,
+        "i": 0,
+        "r": 8,
+        "g": 10,
+        "b": 12,
+        "w": 14
+      }
+    },
+    {
+      "name": "Fixture 122",
+      "type": "lib",
+      "address": 321,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 2,
+      "x": 72,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Showline",
+        "model": "SL BAR 640 RGBW",
+        "mode": "16-bit, 1 group (16ch)",
+        "ch": 16,
+        "i": 0,
+        "r": 8,
+        "g": 10,
+        "b": 12,
+        "w": 14
+      }
+    },
+    {
+      "name": "Fixture 123",
+      "type": "lib",
+      "address": 337,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 83,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Showline",
+        "model": "SL BAR 640 RGBW",
+        "mode": "16-bit, 1 group (16ch)",
+        "ch": 16,
+        "i": 0,
+        "r": 8,
+        "g": 10,
+        "b": 12,
+        "w": 14
+      }
+    },
+    {
+      "name": "Fixture 124",
+      "type": "lib",
+      "address": 353,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 14,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Showline",
+        "model": "SL BAR 640 RGBW",
+        "mode": "16-bit, 1 group (16ch)",
+        "ch": 16,
+        "i": 0,
+        "r": 8,
+        "g": 10,
+        "b": 12,
+        "w": 14
+      }
+    },
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    {
+      "name": "FoH SR Par Sp.",
+      "type": "lib",
+      "address": 391,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 41,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Martin",
+        "model": "Rush PAR 2 CT Zoom",
+        "mode": "7-channel",
+        "ch": 7,
+        "i": 0,
+        "set": {
+          "2": 12
+        }
+      }
+    },
+    {
+      "name": "DSL Par Sp.",
+      "type": "lib",
+      "address": 428,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 2,
+      "x": 52,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Martin",
+        "model": "Rush PAR 2 CT Zoom",
+        "mode": "7-channel",
+        "ch": 7,
+        "i": 0,
+        "set": {
+          "2": 12
+        }
+      }
+    },
+    {
+      "name": "DSR Par Sp.",
+      "type": "lib",
+      "address": 391,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 2,
+      "x": 63,
+      "y": 60,
+      "profile": {
+        "make": "Martin",
+        "model": "Rush PAR 2 CT Zoom",
+        "mode": "7-channel",
+        "ch": 7,
+        "i": 0,
+        "set": {
+          "2": 12
+        }
+      },
+      "addrFixed": true
+    },
+    {
+      "name": "FoH SL Par Sp.",
+      "type": "lib",
+      "address": 435,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 74,
+      "y": 60,
+      "profile": {
+        "make": "Martin",
+        "model": "Rush PAR 2 CT Zoom",
+        "mode": "7-channel",
+        "ch": 7,
+        "i": 0,
+        "set": {
+          "2": 12
+        }
+      },
+      "addrFixed": true
+    },
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    {
+      "name": "DSR Moving",
+      "type": "lib",
+      "address": 442,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 2,
+      "x": 77,
+      "y": 71,
+      "profile": {
+        "make": "Martin",
+        "model": "Rush MH 6 Wash",
+        "mode": "14-channel",
+        "ch": 14,
+        "i": 1,
+        "r": 3,
+        "g": 4,
+        "b": 5,
+        "w": 6,
+        "pan": 9,
+        "tilt": 11,
+        "set": {
+          "0": 12
+        }
+      },
+      "addrFixed": true,
+      "aim": {
+        "x": 55.96832482993197,
+        "y": 46.296727825745684
+      }
+    },
+    {
+      "name": "DSL Moving",
+      "type": "lib",
+      "address": 456,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 2,
+      "x": 82,
+      "y": 60,
+      "profile": {
+        "make": "Martin",
+        "model": "Rush MH 6 Wash",
+        "mode": "14-channel",
+        "ch": 14,
+        "i": 1,
+        "r": 3,
+        "g": 4,
+        "b": 5,
+        "w": 6,
+        "pan": 9,
+        "tilt": 11,
+        "set": {
+          "0": 12
+        }
+      },
+      "addrFixed": true,
+      "aim": {
+        "x": 69.8754742281528,
+        "y": 36.56728316326531
+      }
+    },
+    {
+      "name": "SL MH",
+      "type": "lib",
+      "address": 41,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 2,
+      "x": 13,
+      "y": 70,
+      "profile": {
+        "make": "Chauvet DJ",
+        "model": "Intimidator Spot 375Z IRC",
+        "mode": "15-channel",
+        "ch": 15,
+        "pan": 0,
+        "tilt": 2,
+        "i": 10,
+        "set": {
+          "11": 255
+        }
+      },
+      "addrFixed": true
+    },
+    {
+      "name": "SR MH",
+      "type": "lib",
+      "address": 65,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 2,
+      "x": 25,
+      "y": 70,
+      "profile": {
+        "make": "Chauvet DJ",
+        "model": "Intimidator Spot 375Z IRC",
+        "mode": "15-channel",
+        "ch": 15,
+        "pan": 0,
+        "tilt": 2,
+        "i": 10,
+        "set": {
+          "11": 255
+        }
+      },
+      "addrFixed": true,
+      "aim": {
+        "x": 57.30352237048666,
+        "y": 38.48177492150707
+      }
+    },
+    {
+      "name": "Rotosphere",
+      "type": "lib",
+      "address": 56,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 2,
+      "x": 27,
+      "y": 83,
+      "profile": {
+        "make": "Chauvet DJ",
+        "model": "Rotosphere Q3",
+        "mode": "9-channel",
+        "ch": 9,
+        "r": 0,
+        "g": 1,
+        "b": 2,
+        "w": 3
+      },
+      "addrFixed": true
+    },
+    null,
+    null,
+    null,
+    null,
+    null,
+    {
+      "name": "Fixture 161",
+      "type": "lib",
+      "address": 31,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 2,
+      "x": 21,
+      "y": 60,
+      "profile": {
+        "make": "Chauvet DJ",
+        "model": "Geyser P6",
+        "mode": "10-channel",
+        "ch": 10,
+        "r": 1,
+        "g": 2,
+        "b": 3,
+        "i": 9
+      },
+      "addrFixed": true
+    },
+    null,
+    {
+      "name": "Fixture 163",
+      "type": "lib",
+      "address": 369,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 49,
+      "y": 45,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLCYC1",
+        "mode": "8-bit (9ch)",
+        "ch": 9,
+        "i": 0,
+        "r": 1,
+        "g": 2,
+        "b": 3,
+        "w": 4
+      },
+      "addrFixed": true
+    },
+    {
+      "name": "Fixture 164",
+      "type": "lib",
+      "address": 378,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 54,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLCYC1",
+        "mode": "8-bit (9ch)",
+        "ch": 9,
+        "i": 0,
+        "r": 1,
+        "g": 2,
+        "b": 3,
+        "w": 4
+      }
+    },
+    {
+      "name": "Fixture 165",
+      "type": "lib",
+      "address": 398,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 65,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLCYC1",
+        "mode": "8-bit (9ch)",
+        "ch": 9,
+        "i": 0,
+        "r": 1,
+        "g": 2,
+        "b": 3,
+        "w": 4
+      }
+    },
+    {
+      "name": "Fixture 166",
+      "type": "lib",
+      "address": 407,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 76,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLCYC1",
+        "mode": "8-bit (9ch)",
+        "ch": 9,
+        "i": 0,
+        "r": 1,
+        "g": 2,
+        "b": 3,
+        "w": 4
+      }
+    },
+    {
+      "name": "Fixture 167",
+      "type": "lib",
+      "address": 416,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 87,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLCYC1",
+        "mode": "8-bit (9ch)",
+        "ch": 9,
+        "i": 0,
+        "r": 1,
+        "g": 2,
+        "b": 3,
+        "w": 4
+      }
+    },
+    {
+      "name": "Fixture 168",
+      "type": "lib",
+      "address": 425,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 18,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLCYC1",
+        "mode": "8-bit (9ch)",
+        "ch": 9,
+        "i": 0,
+        "r": 1,
+        "g": 2,
+        "b": 3,
+        "w": 4
+      }
+    },
+    {
+      "name": "Fixture 169",
+      "type": "lib",
+      "address": 442,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 28,
+      "y": 73,
+      "addrFixed": true,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLCYC1",
+        "mode": "8-bit (9ch)",
+        "ch": 9,
+        "i": 0,
+        "r": 1,
+        "g": 2,
+        "b": 3,
+        "w": 4
+      }
+    },
+    {
+      "name": "Fixture 170",
+      "type": "lib",
+      "address": 451,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 47,
+      "y": 78,
+      "addrFixed": true,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLCYC1",
+        "mode": "8-bit (9ch)",
+        "ch": 9,
+        "i": 0,
+        "r": 1,
+        "g": 2,
+        "b": 3,
+        "w": 4
+      }
+    },
+    {
+      "name": "Fixture 171",
+      "type": "lib",
+      "address": 460,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 51,
+      "y": 60,
+      "addrFixed": true,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLCYC1",
+        "mode": "8-bit (9ch)",
+        "ch": 9,
+        "i": 0,
+        "r": 1,
+        "g": 2,
+        "b": 3,
+        "w": 4
+      }
+    },
+    {
+      "name": "Fixture 172",
+      "type": "lib",
+      "address": 469,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 62,
+      "y": 73,
+      "addrFixed": true,
+      "profile": {
+        "make": "Philips Selecon",
+        "model": "PLCYC1",
+        "mode": "8-bit (9ch)",
+        "ch": 9,
+        "i": 0,
+        "r": 1,
+        "g": 2,
+        "b": 3,
+        "w": 4
+      }
+    },
+    null,
+    null,
+    {
+      "name": "Fixture 175",
+      "type": "dimmer",
+      "address": 500,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 14,
+      "y": 70,
+      "addrFixed": true
+    },
+    {
+      "name": "Fixture 176",
+      "type": "dimmer",
+      "address": 501,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 23,
+      "y": 81,
+      "addrFixed": true
+    },
+    {
+      "name": "Fixture 177",
+      "type": "dimmer",
+      "address": 502,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 36,
+      "y": 53,
+      "addrFixed": true
+    },
+    {
+      "name": "Fixture 178",
+      "type": "dimmer",
+      "address": 503,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 48,
+      "y": 60,
+      "addrFixed": true
+    },
+    {
+      "name": "Fixture 179",
+      "type": "dimmer",
+      "address": 504,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 59,
+      "y": 60,
+      "addrFixed": true
+    },
+    {
+      "name": "Fixture 180",
+      "type": "dimmer",
+      "address": 505,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 68,
+      "y": 69,
+      "addrFixed": true
+    },
+    {
+      "name": "Fixture 181",
+      "type": "dimmer",
+      "address": 506,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 81,
+      "y": 60,
+      "addrFixed": true
+    },
+    {
+      "name": "Fixture 182",
+      "type": "dimmer",
+      "address": 507,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 13,
+      "y": 44,
+      "addrFixed": true
+    },
+    {
+      "name": "Fixture 183",
+      "type": "dimmer",
+      "address": 508,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 22,
+      "y": 74,
+      "addrFixed": true
+    },
+    {
+      "name": "Fixture 184",
+      "type": "dimmer",
+      "address": 509,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 35,
+      "y": 75,
+      "addrFixed": true
+    },
+    {
+      "name": "Fixture 185",
+      "type": "dimmer",
+      "address": 510,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 36,
+      "y": 18,
+      "addrFixed": true,
+      "aim": {
+        "x": 48.31309713375796,
+        "y": 23.20797671178344
+      }
+    },
+    {
+      "name": "Fixture 186",
+      "type": "dimmer",
+      "address": 511,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 56,
+      "y": 60,
+      "addrFixed": true
+    },
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    null,
+    {
+      "name": "Fixture 200",
+      "type": "lib",
+      "address": 7,
+      "sacn": true,
+      "dmx": false,
+      "artnet": false,
+      "universe": 1,
+      "x": 50,
+      "y": 60,
+      "profile": {
+        "make": "Generic",
+        "model": "Non-Dim",
+        "mode": "1 channel (relay)",
+        "ch": 1,
+        "i": 0
+      },
+      "parts": [
+        {
+          "name": "P1",
+          "address": 7,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P2",
+          "address": 8,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P3",
+          "address": 9,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P4",
+          "address": 10,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P5",
+          "address": 17,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P6",
+          "address": 18,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P7",
+          "address": 19,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P8",
+          "address": 20,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P9",
+          "address": 33,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P10",
+          "address": 34,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P11",
+          "address": 47,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P12",
+          "address": 48,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P13",
+          "address": 61,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P14",
+          "address": 62,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P15",
+          "address": 67,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P16",
+          "address": 68,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P17",
+          "address": 69,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P18",
+          "address": 70,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P19",
+          "address": 73,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P20",
+          "address": 74,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P21",
+          "address": 78,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P22",
+          "address": 81,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P23",
+          "address": 82,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P24",
+          "address": 87,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P25",
+          "address": 88,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P26",
+          "address": 90,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P27",
+          "address": 92,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        },
+        {
+          "name": "P28",
+          "address": 94,
+          "universe": 1,
+          "type": "lib",
+          "profile": {
+            "make": "Generic",
+            "model": "Non-Dim",
+            "mode": "1 channel (relay)",
+            "ch": 1,
+            "i": 0
+          }
+        }
+      ],
+      "addrFixed": true
     }
   ],
   "mixer": {
@@ -8967,7 +10505,48 @@
     "dmx": {
       "enabled": true,
       "port": "",
-      "kind": "pro"
+      "kind": "pro",
+      "output": 1
+    }
+  },
+  "live": {
+    "onlyPatched": true,
+    "autoGaps": true,
+    "breaks": [],
+    "rows": [],
+    "tile": 72,
+    "map": {
+      "w": 18,
+      "d": 8,
+      "areas": [
+        {
+          "name": "Stage",
+          "kind": "stage",
+          "x": 0,
+          "y": 0,
+          "w": 18,
+          "d": 8
+        }
+      ]
+    }
+  },
+  "groups": {
+    "1": {
+      "label": "",
+      "channels": [
+        175,
+        176,
+        177,
+        178,
+        179,
+        180,
+        181,
+        182,
+        183,
+        184,
+        185,
+        186
+      ]
     }
   }
 }
