@@ -1,12 +1,11 @@
 # Show Control
 
-A show control app for small theater productions. Each crew role opens a web page onto it from any device on the network. It can also run as a desktop app (Electron).
 
 ## What it does
 
 - **Stage Manager** (`sm.html`): the cue list, GO and STOP.
 - **Lights** (`lights.html`): fixture patch, levels, and recorded cues, sent out as sACN (DMX over the network).
-- **Sound** (`sound.html`): audio playback, uploads, and an Allen & Heath SQ mixer panel.
+- **Sound** (`sound.html`): audio playback and uploads.
 - **Script** (`actor.html`): read along with the script, with cue markers.
 - **Follow** (`follow.html`): listens to the actors and tracks where they are in the script.
 
@@ -46,4 +45,4 @@ The admin can hand out keys to other people that limit what they can do (lights 
 - `public/`: the web pages for each role.
 - `show.json`: the saved show (cues, script, levels).
 - `public/fixtures.json`: light fixture definitions.
-- `discover.js`, `listen.js`, `script-import.js`: finding sound desks, speech recognition, and importing scripts from .txt/.docx/.pdf.
+- `listen.js`, `script-import.js`: speech recognition, and importing scripts from .txt/.docx/.pdf.

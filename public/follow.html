@@ -76,16 +76,16 @@
           <button id="top">Top</button>
           <button id="now" title="Scroll the script to the live line">⦿ Show current</button>
         </div>
-        <select id="jump" title="Start following from an act or scene"><option value="">Jump to act / scene…</option></select>
+        <select id="jump" data-not-demo title="Start following from an act or scene"><option value="">Jump to act / scene…</option></select>
         <div class="device" id="found"></div>
         <label class="slider">Evidence needed <span id="thresholdValue">7</span>
           <input type="range" id="threshold" min="4" max="14" step="1" value="7" />
         </label>
         <div class="device">Lower = moves sooner, higher = fewer false jumps</div>
 
-        <h2>Search</h2>
-        <input id="search" class="search" placeholder="Find a line… (⌘F)">
-        <div class="device searchRow"><span id="searchCount"></span> <small>↑↓ step · Enter = make it the live line</small></div>
+        <h2 data-not-demo>Search</h2>
+        <input id="search" class="search" data-not-demo placeholder="Find a line… (⌘F)">
+        <div class="device searchRow" data-not-demo><span id="searchCount"></span> <small>↑↓ step · Enter = make it the live line</small></div>
 
         <h2>Heard</h2>
         <div class="heard" id="heard"></div>

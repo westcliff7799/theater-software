@@ -48,7 +48,7 @@ function installSearch({ input, count, box, onPick }) {
   };
   // Cmd/Ctrl+F focuses the box instead of the browser's own find
   document.addEventListener("keydown", (e) => {
-    if ((e.metaKey || e.ctrlKey) && e.key === "f") { e.preventDefault(); input.focus(); input.select(); }
+    if ((e.metaKey || e.ctrlKey) && e.key === "f" && input.offsetParent !== null) { e.preventDefault(); input.focus(); input.select(); }
   });
   return { apply: () => apply(false) };
 }

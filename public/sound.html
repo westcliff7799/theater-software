@@ -9,18 +9,12 @@
       header .master { display: flex; align-items: center; gap: 6px; color: var(--dim); font-size: 12px; }
       header .master input { width: 140px; }
       header .master select { max-width: 220px; padding: 5px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 4px; }
-      header .tabs { display: flex; gap: 4px; margin-right: auto; }
-      header .tabs button.on { background: var(--accent); border-color: var(--accent); }
       #armState { color: var(--standby); font-size: 13px; }
       #armState.on { color: #3fdc5a; }
 
-      main { display: block; overflow: hidden; }
-      .tab { display: none; height: 100%; }
-      .tab.on { display: grid; }
-      #playbackTab.on { grid-template-columns: 1fr 380px; }                       /* Edit: playback · now playing */
-      body.mode-show #playbackTab.on { grid-template-columns: 1fr 380px 340px; } /* Show: + live script */
+      main { grid-template-columns: 1fr 380px; overflow: hidden; }            /* Edit: playback · now playing */
+      body.mode-show main { grid-template-columns: 1fr 380px 340px; } /* Show: + live script */
       #liveScript { min-height: 0; }
-      #mixerTab.on { grid-template-rows: auto 1fr; }
 
       .left { overflow: auto; }
       section { padding: 16px; border-bottom: 1px solid var(--line); }
@@ -50,73 +44,12 @@
       .card .controls input { flex: 1; }
       .card .controls button { padding: 5px 10px; font-size: 13px; }
       .card.paused { opacity: 0.7; }
-
-      /* ---- mixer: channel strips plus a processing panel for the selected channel */
-      #mixerTab.on { grid-template-rows: auto auto 1fr; }
-      .mixbar { display: flex; gap: 8px; align-items: center; padding: 10px 16px; background: var(--panel); border-bottom: 1px solid var(--line); color: var(--dim); font-size: 13px; }
-      .mixbar select, .mixbar input { padding: 6px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 4px; }
-      .mixbar .gap { flex: 1; }
-      .mixbar .dot { width: 10px; height: 10px; border-radius: 50%; background: #555; }
-      .mixbar .dot.on { background: #3fdc5a; box-shadow: 0 0 8px #3fdc5a; }
-      .mixbar .dot.wait { background: var(--standby); }
-
-      /* choose-desk popup */
-      .modal { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.65); display: flex; align-items: center; justify-content: center; z-index: 10; }
-      .modal[hidden] { display: none; } /* "hidden" must win over display: flex, or the popup can never close */
-      .dialog { width: 440px; max-height: 85vh; overflow: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; }
-      .dialog h3 { margin: 0 0 6px; display: flex; justify-content: space-between; align-items: center; }
-      .dialog h3 button { padding: 4px 10px; font-size: 16px; }
-      .unit { display: grid; grid-template-columns: 1fr auto; gap: 2px 10px; padding: 10px 12px; margin-top: 6px; border: 1px solid var(--line); border-radius: 8px; cursor: pointer; }
-      .unit b { font-size: 15px; }
-      .unit span { grid-column: 1; color: var(--dim); font-size: 12px; }
-      .unit em { grid-column: 2; grid-row: 1 / 3; align-self: center; font-style: normal; font-size: 11px; color: var(--standby); border: 1px solid var(--standby); border-radius: 4px; padding: 2px 6px; }
-      .unit.ok em { color: #3fdc5a; border-color: #3fdc5a; }
-      .unit.sel { border-color: var(--accent); background: #16202e; }
-      .unit.off { cursor: default; opacity: 0.7; }
-      .unit input { grid-column: 1 / 3; margin-top: 6px; padding: 6px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 4px; font-size: 14px; }
-      .actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 16px; }
-      button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
-
-      .proc { display: flex; gap: 12px; align-items: stretch; padding: 12px 16px; border-bottom: 1px solid var(--line); min-height: 118px; }
-      .proc .hint { color: var(--dim); font-size: 13px; align-self: center; }
-      .block { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-width: 150px; }
-      .block h4 { margin: 0 0 8px; font-size: 11px; letter-spacing: 2px; text-transform: uppercase; color: var(--dim); }
-      .block .ctl { display: flex; align-items: center; gap: 8px; margin: 6px 0; font-size: 13px; }
-      .block .ctl input[type=range] { width: 130px; }
-      .block .ctl b { font-family: Menlo, monospace; font-size: 12px; min-width: 56px; color: var(--text); }
-      .block input.name { width: 140px; padding: 6px; background: #111; color: var(--text); border: 1px solid var(--line); border-radius: 4px; font-size: 14px; }
-      .block .desk { color: var(--dim); font-size: 11px; margin-top: 8px; line-height: 1.5; }
-      button.tog { padding: 5px 12px; font-size: 12px; }
-      button.tog.on { background: var(--go); border-color: var(--go); color: #fff; }
-
-      .mixer { display: flex; gap: 8px; padding: 16px; overflow-x: auto; align-items: stretch; }
-      .strip { width: 78px; flex: none; display: flex; flex-direction: column; align-items: center; gap: 6px; background: var(--panel); border: 2px solid var(--line); border-radius: 8px; padding: 8px 6px; }
-      .strip.playback { border-color: #2a4a66; }
-      .strip.lr { border-color: var(--accent); margin-left: 14px; }
-      .strip.sel { border-color: #3fdc5a; }
-      .strip .nm { width: 100%; text-align: center; font-size: 12px; font-weight: 600; background: #2a2a2a; color: var(--text); border: 1px solid var(--line); padding: 5px 2px; border-radius: 5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-      .strip button.nm { cursor: pointer; }
-      .strip.desk .nm { color: #9fe0b0; }
-      .strip.playback .nm { color: #6cb5ff; }
-      .strip.lr .nm { color: var(--accent); }
-      .strip .mute { width: 100%; padding: 6px 0; font-size: 12px; font-weight: 600; }
-      .strip .mute.on { background: #a32626; border-color: #a32626; color: #fff; }
-      .strip .fr { display: flex; gap: 5px; align-items: stretch; height: 240px; }
-      .strip .scale { display: flex; flex-direction: column; justify-content: space-between; font-family: Menlo, monospace; font-size: 9px; color: var(--dim); text-align: right; padding: 8px 0; }
-      .strip .vm { width: 8px; background: #000; border-radius: 4px; position: relative; overflow: hidden; }
-      .strip .vm .fill { position: absolute; bottom: 0; left: 0; right: 0; height: 0; background: linear-gradient(0deg, #3fdc5a 70%, #f2c94c 88%, #ff4040); transition: height 0.08s; }
-      .strip input[type=range] { writing-mode: vertical-lr; direction: rtl; width: 34px; height: 100%; }
-      .strip .db { font-family: Menlo, monospace; font-size: 11px; color: var(--dim); min-height: 14px; }
     </style>
   </head>
   <body>
     <script src="/nav.js"></script>
     <header>
       <h1>Sound</h1>
-      <div class="tabs">
-        <button class="on" data-tab="playbackTab">Playback</button>
-        <button data-tab="mixerTab">Mixer</button>
-      </div>
       <span id="armState">Not armed</span>
       <button id="arm">Arm audio</button>
       <label class="master">Output <select id="outDev" title="Where this computer plays sound: speakers, or the SQ over USB"></select></label>
@@ -125,81 +58,31 @@
     </header>
 
     <main>
-      <div class="tab on" id="playbackTab">
-        <div class="left">
-          <section class="cuelist">
-            <h3>Sound cues</h3>
-            <table>
-              <thead><tr><th>#</th><th>Label</th><th>File</th><th>Vol</th><th>In / out</th><th></th></tr></thead>
-              <tbody id="cueRows"></tbody>
-            </table>
-            <p class="dim" id="noCues" hidden>No sound cues yet. Add one on the Stage Manager page and set its type to sound.</p>
-          </section>
-          <section>
-            <h3>Files in public/audio</h3>
-            <div id="files"></div>
-            <div class="drop" id="drop" data-edit-only>
-              Drop audio files here, or <label class="link">choose files<input type="file" id="pick" accept="audio/*" multiple hidden /></label>
-            </div>
-            <p class="dim" id="uploadStatus"></p>
-          </section>
-        </div>
-        <aside class="inspector">
-          <h3>Now playing</h3>
-          <div id="playing"></div>
-          <p class="dim" id="nothing">Nothing playing.</p>
-        </aside>
-        <section id="liveScript" data-show-only></section>
+      <div class="left">
+        <section class="cuelist">
+          <h3>Sound cues</h3>
+          <table>
+            <thead><tr><th>#</th><th>Label</th><th>File</th><th>Vol</th><th>In / out</th><th></th></tr></thead>
+            <tbody id="cueRows"></tbody>
+          </table>
+          <p class="dim" id="noCues" hidden>No sound cues yet. Add one on the Stage Manager page and set its type to sound.</p>
+        </section>
+        <section>
+          <h3>Files in public/audio</h3>
+          <div id="files"></div>
+          <div class="drop" id="drop" data-edit-only>
+            Drop audio files here, or <label class="link">choose files<input type="file" id="pick" accept="audio/*" multiple hidden /></label>
+          </div>
+          <p class="dim" id="uploadStatus"></p>
+        </section>
       </div>
-
-      <div class="tab" id="mixerTab">
-        <div class="mixbar">
-          <span class="dot" id="deskDot"></span><span id="deskText">Desk: no address</span>
-          <button id="chooseDesk">Choose desk…</button>
-          <span class="gap"></span>
-          <select id="mixTarget"></select>
-          <button id="recordMix" data-edit-only>Record into cue</button>
-          <input id="mixLabel" placeholder="Scene name" />
-          <button id="recordMixNew" data-edit-only>Record as new</button>
-        </div>
-
-        <div class="proc" id="proc">
-          <span class="hint" id="procHint">No channel selected.</span>
-          <div class="block" id="b-name" hidden>
-            <h4>Channel</h4>
-            <input class="name" id="p-name" />
-            <div class="desk" id="p-desk"></div>
-          </div>
-          <div class="block" id="b-pre" hidden>
-            <h4>Preamp</h4>
-            <div class="ctl">Gain <input type="range" id="p-gain" min="0" max="60" step="1" /> <b id="p-gainText"></b></div>
-            <div class="ctl"><button class="tog" id="p-48v">48V</button> <span class="dim">phantom power</span></div>
-          </div>
-          <div class="block" id="b-hpf" hidden>
-            <h4>High-pass filter</h4>
-            <div class="ctl"><button class="tog" id="p-hpf">In</button> <input type="range" id="p-hpfFreq" min="0" max="1000" /> <b id="p-hpfText"></b></div>
-          </div>
-          <div class="block" id="b-pan" hidden>
-            <h4>Pan</h4>
-            <div class="ctl">L <input type="range" id="p-pan" min="-100" max="100" /> R <b id="p-panText"></b></div>
-          </div>
-        </div>
-
-        <div class="mixer" id="mixer"></div>
-      </div>
+      <aside class="inspector">
+        <h3>Now playing</h3>
+        <div id="playing"></div>
+        <p class="dim" id="nothing">Nothing playing.</p>
+      </aside>
+      <section id="liveScript" data-show-only></section>
     </main>
-
-    <div class="modal" id="deskModal" hidden>
-      <div class="dialog">
-        <h3>Choose desk <button id="rescan" title="Scan again">↻</button></h3>
-        <p class="dim" id="scanStatus"></p>
-        <div class="units" id="units"></div>
-        <div class="unit" id="unitOffline"><b>Offline</b><span>Work without a desk</span></div>
-        <div class="unit" id="unitOther"><b>Other…</b><span>Type an address</span>
-          <input id="deskHost" placeholder="192.168.1.50" /></div>
-        <div class="actions"><button id="deskCancel">Cancel</button><button id="deskUse" class="primary">Connect</button></div>
-      </div>
-    </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="/livescript.js"></script>
@@ -209,13 +92,7 @@
       installLiveScript(document.getElementById("liveScript"), socket);
       const $ = (id) => document.getElementById(id);
       const fmt = (s) => (isFinite(s) ? Math.floor(s / 60) + ":" + String(Math.floor(s % 60)).padStart(2, "0") : "–:––");
-      let cues = [], mixer = null;
-
-      for (const b of document.querySelectorAll("header .tabs button")) b.onclick = () => {
-        document.querySelectorAll("header .tabs button, .tab").forEach((el) => el.classList.remove("on"));
-        b.classList.add("on");
-        $(b.dataset.tab).classList.add("on");
-      };
+      let cues = [];
 
       // ---- level meters through Web Audio. Each player gets an analyser; we read its loudness 10x a second.
       let ctx = null;
@@ -332,182 +209,9 @@
           card.querySelector(".meter .fill").style.width = Math.min(100, loudness(a) * 300) + "%";
         }
       }
-      onPlayersChange = () => { buildCards(); buildMixer(); };
-      setInterval(() => { paintCards(); paintMixer(); }, 100);
+      onPlayersChange = buildCards;
+      setInterval(paintCards, 100);
       listenForSound(socket);
-
-      // ---- mixer strips
-      // Fader position 0..1 shown as dB the way a desk does it: 0 dB sits at three quarters of the travel
-      const db = (p) => (p <= 0 ? "-∞" : (p < 0.75 ? -60 + (p / 0.75) * 60 : ((p - 0.75) / 0.25) * 10).toFixed(1) + " dB");
-      const SCALE = ["+10", "0", "-10", "-20", "-40", "-∞"];
-      let selectedCh = null; // index of the desk channel shown in the processing panel
-
-      function strip({ cls, id, name, fader, mute, onSelect, onFader, onMute }) {
-        const el = document.createElement("div");
-        el.className = "strip " + cls;
-        el.id = id;
-        el.innerHTML = `
-          ${onSelect ? '<button class="nm"></button>' : '<div class="nm"></div>'}
-          <button class="mute">Mute</button>
-          <div class="fr">
-            <div class="scale">${SCALE.map((s) => `<span>${s}</span>`).join("")}</div>
-            <input type="range" min="0" max="1000" />
-            <div class="vm"><div class="fill"></div></div>
-          </div>
-          <div class="db"></div>`;
-        const range = el.querySelector("input[type=range]"), mb = el.querySelector(".mute");
-        el.querySelector(".nm").textContent = name;
-        if (onSelect) el.querySelector(".nm").onclick = onSelect;
-        range.value = fader * 1000;
-        range.oninput = (e) => { onFader(e.target.value / 1000); el.querySelector(".db").textContent = db(e.target.value / 1000); };
-        mb.classList.toggle("on", mute);
-        mb.onclick = () => onMute(!mb.classList.contains("on"));
-        el.querySelector(".db").textContent = db(fader);
-        return el;
-      }
-      function buildMixer() {
-        const box = $("mixer");
-        box.innerHTML = "";
-        if (!mixer) return;
-        mixer.channels.forEach((c, i) => box.appendChild(strip({
-          cls: "desk" + (i === selectedCh ? " sel" : ""), id: "strip" + i, name: c.name, fader: c.fader, mute: c.mute,
-          onSelect: () => { selectedCh = i; paintMixerFromServer(); },
-          onFader: (v) => socket.emit("mixer", { ch: i, fader: v }),
-          onMute: (v) => socket.emit("mixer", { ch: i, mute: v }),
-        })));
-        let n = 0;
-        for (const [a, entry] of players) {
-          const el = strip({
-            cls: "playback", id: "pstrip" + n++, name: entry.label, fader: entry.volume, mute: a.muted,
-            onFader: (v) => setPlayerVolume(a, v),
-            onMute: (v) => { a.muted = v; el.querySelector(".mute").classList.toggle("on", v); },
-          });
-          box.appendChild(el);
-        }
-        box.appendChild(strip({
-          cls: "lr", id: "stripLR", name: "LR", fader: mixer.master.fader, mute: mixer.master.mute,
-          onFader: (v) => socket.emit("mixer", { ch: "master", fader: v }),
-          onMute: (v) => socket.emit("mixer", { ch: "master", mute: v }),
-        }));
-        paintPanel();
-      }
-      // Fader positions, mutes and names from the server (someone else may have moved them)
-      function paintMixerFromServer() {
-        if (!mixer) return;
-        const set = (el, name, fader, mute) => {
-          if (!el) return;
-          const range = el.querySelector("input[type=range]");
-          if (document.activeElement !== range) { range.value = fader * 1000; el.querySelector(".db").textContent = db(fader); }
-          el.querySelector(".mute").classList.toggle("on", mute);
-          el.querySelector(".nm").textContent = name;
-        };
-        mixer.channels.forEach((c, i) => {
-          set($("strip" + i), c.name, c.fader, c.mute);
-          $("strip" + i)?.classList.toggle("sel", i === selectedCh);
-        });
-        set($("stripLR"), "LR", mixer.master.fader, mixer.master.mute);
-        paintPanel();
-      }
-      function paintMixer() { // meters on the playback strips, and a summed meter on LR
-        let total = 0, i = 0;
-        for (const a of players.keys()) {
-          const lv = loudness(a);
-          total += lv;
-          const el = $("pstrip" + i++);
-          if (el) el.querySelector(".vm .fill").style.height = Math.min(100, lv * 300) + "%";
-        }
-        const lr = $("stripLR");
-        if (lr) lr.querySelector(".vm .fill").style.height = Math.min(100, total * 300) + "%";
-      }
-
-      // ---- processing panel for the selected channel
-      const hpfHz = (slider) => Math.round(20 * Math.pow(100, slider / 1000)); // slider 0..1000 -> 20 Hz..2 kHz
-      const hpfSlider = (hz) => Math.round((Math.log(hz / 20) / Math.log(100)) * 1000);
-      const panText = (p) => (p === 0 ? "C" : (p < 0 ? "L " : "R ") + Math.round(Math.abs(p) * 100));
-      const setIfIdle = (el, v) => { if (document.activeElement !== el) el.value = v; };
-
-      function paintPanel() {
-        const c = mixer?.channels[selectedCh];
-        $("procHint").hidden = !!c;
-        for (const id of ["b-name", "b-pre", "b-hpf", "b-pan"]) $(id).hidden = !c;
-        if (!c) return;
-        setIfIdle($("p-name"), c.name);
-        const sent = mixer.sentToDesk || [];
-        const all = ["fader", "mute", "gain", "phantom", "hpf", "hpfFreq", "pan"];
-        $("p-desk").innerHTML = "Sent to the SQ: " + sent.join(", ") + "<br>App only (not in the SQ MIDI protocol): " + all.filter((k) => !sent.includes(k)).join(", ");
-        setIfIdle($("p-gain"), c.gain);
-        $("p-gainText").textContent = c.gain + " dB";
-        $("p-48v").classList.toggle("on", c.phantom);
-        $("p-hpf").classList.toggle("on", c.hpf);
-        setIfIdle($("p-hpfFreq"), hpfSlider(c.hpfFreq));
-        $("p-hpfText").textContent = c.hpfFreq + " Hz";
-        setIfIdle($("p-pan"), Math.round(c.pan * 100));
-        $("p-panText").textContent = panText(c.pan);
-      }
-      const send = (changes) => { if (selectedCh !== null) socket.emit("mixer", { ch: selectedCh, ...changes }); };
-      $("p-name").onchange = (e) => { if (selectedCh !== null) socket.emit("renameMixChannel", { ch: selectedCh, name: e.target.value }); };
-      $("p-gain").oninput = (e) => { $("p-gainText").textContent = e.target.value + " dB"; send({ gain: Number(e.target.value) }); };
-      $("p-48v").onclick = () => send({ phantom: !mixer.channels[selectedCh].phantom });
-      $("p-hpf").onclick = () => send({ hpf: !mixer.channels[selectedCh].hpf });
-      $("p-hpfFreq").oninput = (e) => { const hz = hpfHz(Number(e.target.value)); $("p-hpfText").textContent = hz + " Hz"; send({ hpfFreq: hz }); };
-      $("p-pan").oninput = (e) => { const p = Number(e.target.value) / 100; $("p-panText").textContent = panText(p); send({ pan: p }); };
-
-      function paintDesk(d) {
-        $("deskDot").className = "dot" + (d.connected ? " on" : d.host ? " wait" : "");
-        $("deskText").textContent = d.connected ? "Desk: connected" : d.host ? "Desk: looking for " + d.host : "Desk: no address";
-        if (document.activeElement !== $("deskHost")) $("deskHost").value = d.host || "";
-      }
-      socket.on("desk", paintDesk);
-
-      // ---- choose-desk popup: the server sweeps the network and reports desks as they turn up
-      let choice = null; // "offline", "other", or an ip address
-      function pickUnit(el, value) {
-        document.querySelectorAll(".unit").forEach((u) => u.classList.remove("sel"));
-        el.classList.add("sel");
-        choice = value;
-      }
-      function paintUnits({ scanning, found, scanned, skipped }) {
-        const box = $("units");
-        box.innerHTML = "";
-        for (const d of found) {
-          const el = document.createElement("div");
-          const ok = !!d.driver;
-          el.className = "unit" + (ok ? " ok" : " off") + (choice === d.ip ? " sel" : "");
-          el.innerHTML = `<b>${d.model}</b><em>${ok ? "ready" : "not set up yet"}</em><span>${d.brand} · ${d.ip}</span>`;
-          if (ok) el.onclick = () => pickUnit(el, d.ip);
-          box.appendChild(el);
-        }
-        $("scanStatus").textContent = scanning
-          ? "Scanning the network…" + (found.length ? " found " + found.length + " so far" : "")
-          : (found.length ? found.length + " desk" + (found.length > 1 ? "s" : "") + " found" : "No desks found") +
-            (scanned ? " after checking " + scanned + " addresses" : "") +
-            (skipped?.length ? ". " + skipped.join(", ") + " is a big network, so only the 254 addresses nearest this computer were checked. Use Other… for a desk further away." : ".");
-      }
-      socket.on("desks", paintUnits);
-      $("chooseDesk").onclick = () => {
-        $("deskModal").hidden = false;
-        choice = null;
-        paintUnits({ scanning: true, found: [] });
-        socket.emit("scanDesks");
-      };
-      $("rescan").onclick = () => socket.emit("scanDesks");
-      $("unitOffline").onclick = () => pickUnit($("unitOffline"), "offline");
-      $("unitOther").onclick = () => pickUnit($("unitOther"), "other");
-      $("deskHost").onkeydown = (e) => { if (e.key === "Enter") $("deskUse").click(); };
-      $("deskCancel").onclick = () => { $("deskModal").hidden = true; };
-      $("deskUse").onclick = () => {
-        if (choice === null) return;
-        socket.emit("setSqHost", choice === "offline" ? "" : choice === "other" ? $("deskHost").value : choice);
-        $("deskModal").hidden = true;
-      };
-
-      socket.on("mixer", (m) => {
-        const rebuild = !mixer || mixer.channels.length !== m.channels.length;
-        mixer = m;
-        if (rebuild) buildMixer(); else paintMixerFromServer();
-      });
-      $("recordMix").onclick = () => { if ($("mixTarget").value) socket.emit("recordMix", { number: $("mixTarget").value }); };
-      $("recordMixNew").onclick = () => socket.emit("recordMix", { index: -1, label: $("mixLabel").value });
 
       // ---- file list, with durations read from each file's header
       const durations = new Map();
@@ -538,10 +242,7 @@
         const rows = $("cueRows");
         rows.innerHTML = "";
         let count = 0;
-        const target = $("mixTarget"), keep = target.value;
-        target.innerHTML = "";
         cues.forEach((cue, i) => {
-          if (cue.type === "mix") target.add(new Option(cue.number + "  " + cue.label, cue.number)); // by number: positions move
           if (cue.type !== "sound") return;
           count++;
           const tr = document.createElement("tr");
@@ -553,7 +254,6 @@
           tr.querySelector(".pre").onclick = () => play(cue.file, { ...cue, label: cue.number + " · " + cue.label + " (preview)" }); // just here
           rows.appendChild(tr);
         });
-        if (keep) target.value = keep;
         $("noCues").hidden = count > 0;
 
         const box = $("files");
@@ -566,9 +266,6 @@
           row.querySelector("button").onclick = () => play(file, { label: file + " (preview)" });
           box.appendChild(row);
         }
-
-        if (state.desk) paintDesk(state.desk);
-        if (state.mixer && !mixer) { mixer = state.mixer; buildMixer(); }
       });
     </script>
   </body>

@@ -88,3 +88,5 @@ body.mode-edit [data-show-only] { display: none !important; } /* the live script
 /* The demo site: a band above the nav on every page, so nobody mistakes it for the real thing */
 .demo-bar { padding: 5px 12px; background: #7a3b00; color: #ffe2c2; font-size: 13px; font-weight: 600; text-align: center; letter-spacing: 0.02em; }
 .demo-bar[hidden] { display: none; }
+/* Features kept off the demo site (the Groups tab, script search, jump to act/scene) */
+body.sandbox [data-not-demo] { display: none !important; }

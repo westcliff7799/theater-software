@@ -389,7 +389,7 @@
         <button class="on" data-tab="gridTab">1 Live</button>
         <button data-tab="stageTab">2 Stage</button>
         <button data-tab="patchTab" data-edit-only>3 Patch</button>
-        <button data-tab="dsTab">4 Groups</button>
+        <button data-tab="dsTab" data-not-demo>4 Groups</button>
       </div>
       <div class="blindbar" id="blindBar">
         <span>BLIND · editing cue <b id="blindCue"></b>. The stage is not changing.</span>
@@ -398,7 +398,7 @@
         <button id="toLive">Back to Live (B)</button>
       </div>
       <div class="checkbar" id="checkBar">
-        <span>LIGHT CHECK · <b id="checkWho"></b> at full, everything else dark. ← / → for the next light.</span>
+        <span id="checkText">LIGHT CHECK · <b>the lights picked on another screen</b> at full, everything else dark.</span>
         <button id="checkEnd">End check (Esc)</button>
       </div>
 
@@ -472,7 +472,7 @@
                 <button id="patchHere" style="display:none">New fixture here</button>
                 <button id="typeAbove" title="Use the same fixture type (make, model and mode) as the nearest channel above">Same as above</button>
                 <button id="addPart" title="Add a part: another cell on this channel with its own address, like an Eos '200 Part 2'">+ Part</button>
-                <button id="flashBtn" title="Light this fixture for a second so you can find it">Flash</button>
+                <button id="flashBtn" title="Blink this fixture between full and 30 until you press Flash again or pick another light">Flash</button>
               </div>
             </div>
           </div>
@@ -531,7 +531,7 @@
         </div>
       </div>
 
-      <div class="tab ds" id="dsTab">
+      <div class="tab ds" id="dsTab" data-not-demo>
         <h4>GROUPS</h4>
         <div class="dsRow" id="groupBtns"></div>
         <h4>COLOUR PALETTES</h4>
@@ -613,7 +613,7 @@
     <table>
       <tr class="eg"><td>1 T 5 A 50 Enter</td><td>channels 1 to 5 at 50%</td></tr>
       <tr class="eg"><td>1 + 3 - 2 F</td><td>add and take away channels, then full</td></tr>
-      <tr class="eg"><td>G 2 A 75 Enter</td><td>group 2 at 75%</td></tr>
+      <tr class="eg" data-not-demo><td>G 2 A 75 Enter</td><td>group 2 at 75%</td></tr>
       <tr class="eg"><td>] or [</td><td>selected channels 10% brighter / dimmer</td></tr>
       <tr class="eg"><td>R Enter</td><td>save the stage as the next cue (only what changed is stored)</td></tr>
       <tr class="eg"><td>R Q 5 S 3 / 6 L Front wash Enter</td><td>save as cue 5, fading up in 3s and down in 6s, called "Front wash"</td></tr>
@@ -750,14 +750,7 @@
       }
       return out;
     }
-    function setSelection(lv, c) {
-      const all = {};
-      for (const i of selected) {
-        if (c) memory.set(i, c);
-        Object.assign(all, channelsFor(i, lv ?? level(i), c ?? color(i) ?? { r: 255, g: 255, b: 255 }));
-      }
-      sendLevels(all);
-    }
+    const setSelection = (lv, c) => setEach(() => ({ lv, c })); // the Selected sidebar and the colour picker
 
     // ---- writing one named profile channel (i, r, g, b, w, pan, tilt) on every selected fixture
     const hasMove = (f) => "pan" in T(f) && "tilt" in T(f);
@@ -1167,7 +1160,7 @@
       for (const cell of $("grid").querySelectorAll(".cell[data-i]")) {
         const i = Number(cell.dataset.i), f = patch[i], own = f ? level(i) : 0;
         // In Live the tile shows what really goes out: a fader lifting the cue level (amber) or the light check (gold)
-        const lv = f ? outLevel(i) : 0, check = checking || checkElsewhere;
+        const lv = f ? outLevel(i) : 0, check = checking || checkElsewhere || flashing;
         cell.classList.toggle("patched", !!f);
         cell.classList.toggle("sel", selected.has(i));
         const lvEl = cell.querySelector(".lv");
@@ -1364,6 +1357,7 @@
     function selectRow(i, part = -1) {
       dropPending();
       if (patchSel === i && partSel === part && !patchAddr) return;
+      stopFlash(); // picking another light ends the flash
       patchSel = i; partSel = part; patchAddr = 0;
       const c = patch[i] ? cellOf(patch[i], part) : null;
       patchOut = (c && cellUni(patch[i], c)) || patchOut; // the map follows the row
@@ -1372,6 +1366,7 @@
     }
     function selectAddr(a, out = patchOut) { // an empty address
       dropPending();
+      stopFlash();
       patchSel = -1; partSel = -1; patchAddr = a; patchOut = out;
       markRows();
       paintPatchPane();
@@ -1625,8 +1620,9 @@
     const showOutput = (n) => { patchOut = Math.max(1, n); patchAddr = 0; buildPatch(); };
     $("outPrev").onclick = (e) => { showOutput(patchOut - 1); e.target.blur(); };
     $("outNext").onclick = (e) => { showOutput(patchOut + 1); e.target.blur(); };
-    // Flash: light whatever is selected at full for a second, so you can find it on the rig.
-    let flashTimer = null;
+    // Flash: blink whatever is selected between full and 30 so you can find it on the rig. It keeps going until
+    // Flash is pressed again, another row or address is picked, or you leave the Patch tab or pane.
+    let flashTimer = null, flashing = false, flashName = "";
     function flashLevels(lv) { // what is selected, at level lv
       const f = patch[patchSel];
       if (!f) { const a = patchAddr || (patchSel >= 0 ? patchSel + 1 : 0); return a ? { [a]: lv } : {}; } // a free address or empty channel: just that address
@@ -1636,19 +1632,30 @@
       for (let i = 0; i < T(f).ch; i++) if (f.address + i <= 512) out[slotOf(f) + i] = lv;
       return out;
     }
-    $("flashBtn").onclick = (e) => { // blink between full and 30 for two seconds, then back to normal
-      e.target.blur();
+    function stopFlash(tell = true) { // tell: release the output too (false when the server already dropped the check)
+      if (!flashing) return;
+      clearInterval(flashTimer);
+      flashTimer = null;
+      flashing = false;
+      $("flashBtn").classList.remove("checkon");
+      if (tell) socket.emit("check", null);
+      paintCheck();
+    }
+    function startFlash() {
       if (checking) return; // a light check is already using the output
       if (!Object.keys(flashLevels(255)).length) return;
-      clearInterval(flashTimer);
-      let n = 0;
-      const tick = () => {
-        if (n++ >= 8) { clearInterval(flashTimer); flashTimer = null; return socket.emit("check", null); }
-        socket.emit("check", flashLevels(n % 2 ? 255 : 30));
-      };
+      const f = patch[patchSel];
+      flashName = f ? `${patchSel + 1} ${f.name}` : `address ${patchAddr || patchSel + 1} on output ${patchOut}`;
+      flashing = true;
+      $("flashBtn").classList.add("checkon");
+      let bright = true;
+      const tick = () => { socket.emit("check", flashLevels(bright ? 255 : 30)); bright = !bright; };
       tick();
-      flashTimer = setInterval(tick, 250);
-    };
+      flashTimer = setInterval(tick, 700);
+      paintCheck();
+    }
+    $("flashBtn").onclick = (e) => { e.target.blur(); flashing ? stopFlash() : startFlash(); };
+    window.addEventListener("beforeunload", () => stopFlash()); // don't leave the stage in a flash if the page closes
     // A new fixture takes the channel that matches its address (address 11 = channel 11), leaving empty channels
     // in between if it has to. If that channel is taken, the next free one after it.
     function addFixtureAt(address, universe, nextFree = false) {
@@ -1688,6 +1695,7 @@
       document.querySelectorAll(".pnav button, .pane").forEach((el) => el.classList.remove("on"));
       b.classList.add("on");
       $(b.dataset.pane).classList.add("on");
+      if (b.dataset.pane !== "paneInfo") stopFlash(); // the flash belongs to the Patch pane
       if (b.dataset.pane === "paneDevices") loadSerialPorts();
     };
     for (const b of document.querySelectorAll(".ptabs button")) b.onclick = () => {
@@ -1736,7 +1744,8 @@
       $("dmxStatus").textContent = !outputs.serial ? "The serialport package is not loaded on the server, so Local DMX is off."
         : !protocols.dmx.enabled ? "Local DMX is off."
         : outputs.dmxPort ? `Sending on ${outputs.dmxPort}.` : protocols.dmx.port ? `Could not open ${protocols.dmx.port}. Check the cable, then Refresh ports.` : "Pick the USB interface's port.";
-      $("ifaceRows").innerHTML = outputs.ifaces.map((ip) => `<tr><td>${ip}</td><td>sACN multicast · ArtNet broadcast</td></tr>`).join("") || "<tr><td>No network cards</td></tr>";
+      $("ifaceRows").innerHTML = outputs.ifaces.map((ip) => `<tr><td>${ip}</td><td>sACN multicast · ArtNet broadcast</td></tr>`).join("") ||
+        (document.body.classList.contains("sandbox") ? "<tr><td>Not shown on the demo site</td></tr>" : "<tr><td>No network cards</td></tr>");
       paintPatchSummary();
     }
     for (const el of document.querySelectorAll("[data-p]")) el.onchange = () => {
@@ -1983,7 +1992,7 @@
     const pctLv = (n) => clampLv(Math.min(100, Number(n)) * 2.55);
     const dmxOf = (i) => cellsOf(patch[i]).flatMap((c) => Array.from({ length: T(c).ch }, (_, k) => slotOf(patch[i], c) + k)); // every slot a fixture drives
     const sameNumber = (a, b) => a === b || (a !== "" && b !== "" && Number(a) === Number(b));
-    // The light cue with this number (sound and mix cues belong to the other pages)
+    // The light cue with this number (sound cues belong to the Stage Manager page)
     function lightCue(n) {
       const i = cues.findIndex((c) => sameNumber(c.number, n));
       if (i < 0) throw new Error(`No cue ${n} yet. R Q ${n} Enter records it`);
@@ -2206,7 +2215,7 @@
       if (k === "Enter") return run;
       if (k === "Escape") return () => {
         if (pendingOverwrite) { pendingOverwrite = null; return hint(""); } // keep the patch as it was
-        if (!line.length && (checking || checkElsewhere)) return endCheck(); // Esc on an empty line ends a light check
+        if (!line.length && (checking || checkElsewhere || flashing)) return endCheck(); // Esc on an empty line ends a light check or a flash
         line = []; confirmDelete = false; paintLine(); hint("");
       };
       if (k === "Backspace") return backspace;
@@ -2301,7 +2310,7 @@
 
     // ---- playback list: one cue before the one on stage, it, and the next few
     let progress = null; // { number, fraction, paused } from the server
-    const TYPE_NAMES = { light: "Lights", sound: "Sound", mix: "Mix", midi: "MIDI" };
+    const TYPE_NAMES = { light: "Lights", sound: "Sound", midi: "MIDI" };
     function buildPlayback() {
       const body = $("pbRows");
       body.innerHTML = "";
@@ -2355,12 +2364,14 @@
       if (inBlind()) return hint("Light check works in Live (press B)", true);
       if (!patch.length) return hint("Patch some fixtures first", true);
       if (!selected.size) selected = new Set([0]);
+      stopFlash(false); // the check takes the output over from a flash
       checking = true;
       checkKey = "";
       paintAll();
     }
     function endCheck() {
       checking = false;
+      stopFlash(false); // End check / Esc also ends a flash; the null below releases the output
       socket.emit("check", null);
       paintCheck();
     }
@@ -2374,18 +2385,20 @@
       socket.emit("check", levels);
     }
     function paintCheck() {
-      const on = checking || checkElsewhere;
+      const on = checking || checkElsewhere || flashing;
       document.body.classList.toggle("checking", on);
-      $("checkBtn").classList.toggle("checkon", on);
-      $("checkWho").textContent = checking
-        ? [...selected].sort((a, b) => a - b).map((i) => `${i + 1} ${patch[i].name}`).join(", ") || "nothing"
-        : "the lights picked on another screen";
+      $("checkBtn").classList.toggle("checkon", checking || checkElsewhere);
+      $("checkEnd").textContent = flashing && !checking ? "Stop flash (Esc)" : "End check (Esc)";
+      $("checkText").innerHTML = checking
+        ? `LIGHT CHECK · <b>${esc([...selected].sort((a, b) => a - b).map((i) => `${i + 1} ${patch[i].name}`).join(", ") || "nothing")}</b> at full, everything else dark. ← / → for the next light.`
+        : flashing ? `FLASH · <b>${esc(flashName)}</b> blinking between full and 30, everything else dark. Press Flash again or pick another light to stop.`
+        : "LIGHT CHECK · <b>the lights picked on another screen</b> at full, everything else dark.";
     }
     $("checkBtn").onclick = (e) => { e.target.blur(); checking || checkElsewhere ? endCheck() : startCheck(); };
     $("checkEnd").onclick = (e) => { e.target.blur(); endCheck(); };
     socket.on("check", (c) => {
-      checkElsewhere = !!c && !checking;
-      if (!c) checking = false;
+      checkElsewhere = !!c && !checking && !flashing;
+      if (!c) { checking = false; stopFlash(false); } // ended from another screen
       paintCheck();
     });
 
@@ -2405,6 +2418,7 @@
       $(b.dataset.tab).classList.add("on");
       // Patch is a blind display: nothing done there reaches the stage
       onPatch = b.dataset.tab === "patchTab";
+      if (!onPatch) stopFlash(); // leaving Patch ends the flash
       refreshBlind();
       b.blur();
     };

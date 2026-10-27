@@ -1,0 +1,22 @@
+netcheck 10/23/2026, 4:11:01 PM
+Network cards: en0 192.168.0.188/255.255.255.0, utun3 100.80.188.32/255.255.255.255
+
+Art-Net / sACN nodes that answered ArtPoll:
+  192.168.0.178  "" / "STRAND node1 out"  firmware 270  1 port(s)
+    port 1: Art-Net universe 2 (Art-Net numbering, 0-based; as an sACN universe that is 3), outputting DMX
+    can switch to sACN: no / not reported   report: -
+    oem code 0x12e0  esta code 0x0000  mac 00:1f:80:30:14:83  status1 0x02
+    web page at http://192.168.0.178/: HTTP 200, title "Node Status", saved as node-192-168-0-178.html
+    page text: Node Status body { background-color:Black; color:White; font-family:Arial; vertical-align: middle; padding: 0px; margin: 0px; overflow: none; } #heading { font-weight: bold; font-style: italic; margin-bottom: 15px; } .port { background-color:Blue; border:5px solid Yellow; width: 500px; height: 50px;
+    status.xml port 1: index="1" status="Ok" mode="Output" universe=": sACN 2"/
+
+sACN sources heard on universes 1-8:
+  100.80.188.32 u1  "Show Server"  priority 100  3 channels above 0
+  100.80.188.32 u2  "Show Server"  priority 100  6 channels above 0
+
+Devices this Mac has seen on its networks (ARP):
+  ? (192.168.0.1) at b0:a7:b9:18:35:75 on en0 ifscope [ethernet]
+  ? (192.168.0.178) at 0:1f:80:30:14:83 on en0 ifscope [ethernet]
+  ? (192.168.0.255) at ff:ff:ff:ff:ff:ff on en0 ifscope [ethernet]
+
+raw ArtPollReply from 192.168.0.178: 4172742d4e6574000021c0a800b23619010e000012e00002734c000000000000000000000000000000000000535452414e44206e6f646531206f7574000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000001800000000000000080000000000000000200000000000000000000001f803014830000000000000000000000000000000000000000000000000000000000000000

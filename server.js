@@ -14,12 +14,11 @@ const app = express();
 const server = http.createServer(app);
 const io = new Server(server);
 const midi = require("@julusian/midi");
-const { discoverDesks } = require("./discover"); // finds sound desks on the network
 const { attachListen } = require("./listen"); // speech recognition for the Follow page
 const { importScript } = require("./script-import"); // .txt/.docx/.pdf -> script lines
 
 // SANDBOX=1 runs the demo site: same app, everyone may do everything, nothing leaves the computer.
-// No DMX, no MIDI, no sound desk, no uploads, and the show is never saved (a restart resets it).
+// No DMX, no MIDI, no uploads, and the show is never saved (a restart resets it).
 const SANDBOX = process.env.SANDBOX === "1";
 if (SANDBOX) console.log("SANDBOX: demo site, no outputs, nothing is saved");
 
@@ -50,7 +49,6 @@ const ABILITIES = {
   lights: "Lights: levels and recording cues",
   "lights.patch": "Lights: patch and output devices",
   sound: "Sound: playback and uploads",
-  "sound.mixer": "Sound: mixer and desk",
   script: "Script: read along",
   "script.edit": "Script: import and edit",
   follow: "Follow: run the listener",
@@ -253,6 +251,7 @@ for (const f of show.patch || []) {
 // ---- DMX output. Every network card gets the data; each fixture chooses sACN or Art-Net and a universe.
 const ifaces = [];
 let ifaceList = "";
+const sacnSenders = new Map(); // one list of senders per universe, rebuilt when the cards change
 function readIfaces() { // the cards this computer has right now: it may have changed networks since startup
   ifaces.length = 0;
   for (const list of Object.values(os.networkInterfaces())) {
@@ -267,16 +266,21 @@ function readIfaces() { // the cards this computer has right now: it may have ch
     }
   }
   const now = ifaces.map((i) => i.address).join(" ");
-  if (now !== ifaceList) { ifaceList = now; console.log("DMX output on", now || "no network"); }
+  if (now !== ifaceList) {
+    ifaceList = now;
+    console.log("DMX output on", now || "no network");
+    for (const list of sacnSenders.values()) for (const sender of list) sender.close();
+    sacnSenders.clear(); // rebuilt on the next send, on the cards we have now
+  }
 }
 readIfaces();
+setInterval(readIfaces, 5000); // notice a cable being plugged in or pulled after launch
 
 // A network card going away throws from inside a socket callback, where no try/catch can reach.
 // Log it and keep running: the cue list, sound and lights must outlive a Wi-Fi hiccup.
 process.on("uncaughtException", (err) => console.log("Unexpected error (server kept running):", err.stack || err));
 
 // sACN: one sender per universe per card, made the first time that universe is used
-const sacnSenders = new Map();
 function sacnFor(universe) {
   if (!sacnSenders.has(universe)) {
     readIfaces(); // a sender bound to an address this computer no longer has would blow up later
@@ -317,7 +321,7 @@ let artSeq = 0;
 function sendArtnet(universe, levels) {
   if (!artnet) return;
   artSeq = (artSeq % 255) + 1;
-  const u = universe - 1;
+  const u = universe; // already in Art-Net numbering: the bucket was made from startUniverse + output - 1
   const head = Buffer.concat([
     Buffer.from("Art-Net\0"),
     Buffer.from([0x00, 0x50, 0, 14, artSeq, 0, u & 255, (u >> 8) & 127, 2, 0]),
@@ -425,216 +429,6 @@ if (!SANDBOX && midiOut.getPortCount() > 0) {
   console.log("MIDI out:", midiOut.getPortName(0));
 } else {
   console.log("No MIDI ports found, MIDI disabled");
-}
-
-// ---- Mixer: one settings object per channel, like the SQ MixPad's Processing view.
-// Faders, mutes and pans talk to an Allen & Heath SQ as MIDI NRPN over TCP (port 51325), exactly as
-// in the "SQ MIDI Protocol, Issue 5" document. Gain, 48V and HPF are not in that protocol, so they
-// only live in this app. The desk also reports its own changes, so faders moved on the SQ show here.
-const net = require("net");
-const mixerConfig = {
-  channels: 16,
-  sqHost: "",
-  midiChannel: 0,
-  ...(show.mixer || {}),
-};
-const names =
-  typeof mixerConfig.channels === "number"
-    ? Array.from({ length: mixerConfig.channels }, (_, i) => "Ch " + (i + 1))
-    : mixerConfig.channels;
-const freshChannel = () => ({
-  fader: 0.75,
-  mute: false,
-  gain: 30,
-  phantom: false,
-  hpf: false,
-  hpfFreq: 100,
-  pan: 0,
-});
-const mixer = {
-  channels: names.map((name) => ({ name, ...freshChannel() })),
-  master: { fader: 0.75, mute: false },
-  sentToDesk: ["fader", "mute", "pan"], // the page tells the user which settings really reach the desk
-};
-const desk = { host: mixerConfig.sqHost || "", connected: false };
-let scanning = false;
-function saveMixerConfig() {
-  show.mixer = {
-    ...mixerConfig,
-    sqHost: desk.host,
-    channels: mixer.channels.map((c) => c.name),
-  };
-  saveShow();
-}
-
-// Parameter numbers [MSB, LSB] from the protocol's reference tables. Input channel i (0 = Ip1).
-const P = {
-  mute: (i) => [0x00, i], // Ip1..Ip48 = LSB 00..2F
-  fader: (i) => [0x40, i], // input level to LR
-  pan: (i) => [0x50, i], // input pan to LR
-  masterMute: [0x00, 0x44],
-  masterFader: [0x4f, 0x00],
-};
-// Level values are 14-bit numbers on the SQ's standard "linear taper" law. These rows come from the
-// document's example table (dB -> value); anything in between is interpolated.
-const LEVELS = [
-  [-90, 4630],
-  [-60, 8073],
-  [-40, 10447],
-  [-30, 11634],
-  [-20, 12822],
-  [-10, 14009],
-  [-5, 14602],
-  [0, 15196],
-  [5, 15790],
-  [10, 16383],
-];
-function interp(table, x, from, to) {
-  // piecewise-linear lookup in a table of rows sorted by column "from"
-  if (x <= table[0][from]) return table[0][to];
-  for (let k = 1; k < table.length; k++) {
-    if (x <= table[k][from]) {
-      const t =
-        (x - table[k - 1][from]) / (table[k][from] - table[k - 1][from]);
-      return table[k - 1][to] + t * (table[k][to] - table[k - 1][to]);
-    }
-  }
-  return table[table.length - 1][to];
-}
-// Our fader position (0..1) <-> dB: 0 dB sits at three quarters of the travel, like a real fader
-const posToDb = (p) =>
-  p < 0.75 ? -60 + (p / 0.75) * 60 : ((p - 0.75) / 0.25) * 10;
-const dbToPos = (db) =>
-  db <= -60 ? 0 : db <= 0 ? ((db + 60) / 60) * 0.75 : 0.75 + (db / 10) * 0.25;
-const encodeFader = (p) =>
-  p <= 0 ? 0 : Math.round(interp(LEVELS, posToDb(p), 0, 1));
-const decodeFader = (v) =>
-  v < LEVELS[0][1]
-    ? 0
-    : Math.round(dbToPos(interp(LEVELS, v, 1, 0)) * 1000) / 1000;
-const encodePan = (pan) => Math.round(((pan + 1) / 2) * 16383); // L100% = 0, centre = 8191, R100% = 16383
-const decodePan = (v) => Math.round(((v / 16383) * 2 - 1) * 100) / 100;
-
-// ---- the TCP link to the desk
-let sqSocket = null,
-  retryTimer = null;
-const rx = { status: 0, data: [], msb: 0, lsb: 0, vc: 0 }; // an NRPN message being received, byte by byte
-function connectSq() {
-  clearTimeout(retryTimer);
-  if (!desk.host || SANDBOX) return;
-  sqSocket = net.connect(51325, desk.host);
-  sqSocket.on("connect", () => {
-    desk.connected = true;
-    console.log("SQ desk connected at", desk.host);
-    io.emit("desk", desk);
-    requestDeskState();
-  });
-  sqSocket.on("data", onDeskData);
-  sqSocket.on("error", (err) => console.log("SQ desk:", err.message));
-  sqSocket.on("close", () => {
-    const was = desk.connected;
-    desk.connected = false;
-    sqSocket = null;
-    if (was) io.emit("desk", desk);
-    if (desk.host) retryTimer = setTimeout(connectSq, 5000); // keep trying, the desk may be switched on later
-  });
-}
-connectSq();
-
-function sendMidi(bytes) {
-  if (sqSocket && desk.connected) sqSocket.write(Buffer.from(bytes));
-  else if (midiOut.isPortOpen()) midiOut.sendMessage(bytes); // e.g. the SQ's USB MIDI port
-}
-const midiCh = () => mixerConfig.midiChannel || 0; // the SQ's "MIDI Channel" setting minus one
-// One NRPN message = four control changes: parameter MSB, LSB, then the 14-bit value in two halves
-function nrpn([msb, lsb], value14) {
-  const c = 0xb0 | midiCh();
-  sendMidi([c, 0x63, msb]);
-  sendMidi([c, 0x62, lsb]);
-  sendMidi([c, 0x06, (value14 >> 7) & 0x7f]);
-  sendMidi([c, 0x26, value14 & 0x7f]);
-}
-// "Get": ask the desk to send a parameter's current value (it replies with the normal message)
-function nrpnGet([msb, lsb]) {
-  const c = 0xb0 | midiCh();
-  sendMidi([c, 0x63, msb]);
-  sendMidi([c, 0x62, lsb]);
-  sendMidi([c, 0x60, 0x7f]);
-}
-function requestDeskState() {
-  mixer.channels.forEach((_, i) => {
-    nrpnGet(P.mute(i));
-    nrpnGet(P.fader(i));
-    nrpnGet(P.pan(i));
-  });
-  nrpnGet(P.masterMute);
-  nrpnGet(P.masterFader);
-}
-// Scene recall = bank change then program change, scenes numbered from 1
-function recallScene(n) {
-  const idx = n - 1;
-  sendMidi([0xb0 | midiCh(), 0x00, Math.floor(idx / 128)]);
-  sendMidi([0xc0 | midiCh(), idx % 128]);
-}
-
-// Bytes arriving from the desk: rebuild control-change messages, then whole NRPNs
-function onDeskData(buf) {
-  for (const byte of buf) {
-    if (byte & 0x80) {
-      rx.status = byte;
-      rx.data = [];
-      continue;
-    } // a status byte starts a new message
-    rx.data.push(byte);
-    if ((rx.status & 0xf0) !== 0xb0 || rx.data.length < 2) continue;
-    const [cc, val] = rx.data;
-    rx.data = [];
-    if (cc === 0x63) rx.msb = val;
-    else if (cc === 0x62) rx.lsb = val;
-    else if (cc === 0x06) rx.vc = val;
-    else if (cc === 0x26) applyFromDesk(rx.msb, rx.lsb, (rx.vc << 7) | val);
-  }
-}
-function applyFromDesk(msb, lsb, value) {
-  let changed = true;
-  if (msb === 0x00 && lsb === 0x44) mixer.master.mute = value === 1;
-  else if (msb === 0x4f && lsb === 0x00)
-    mixer.master.fader = decodeFader(value);
-  else if (lsb < mixer.channels.length && msb === 0x00)
-    mixer.channels[lsb].mute = value === 1;
-  else if (lsb < mixer.channels.length && msb === 0x40)
-    mixer.channels[lsb].fader = decodeFader(value);
-  else if (lsb < mixer.channels.length && msb === 0x50)
-    mixer.channels[lsb].pan = decodePan(value);
-  else changed = false;
-  if (changed) io.emit("mixer", mixer);
-}
-
-// Apply some settings to a channel ("master" or an index), remember them, send what the desk understands
-function setMix(ch, changes) {
-  const isMaster = ch === "master";
-  const i = Number(ch);
-  const target = isMaster ? mixer.master : mixer.channels[i];
-  if (!target) return;
-  for (const [k, v] of Object.entries(changes)) {
-    if (
-      v === undefined ||
-      !(k in freshChannel()) ||
-      (isMaster && !["fader", "mute"].includes(k))
-    )
-      continue;
-    target[k] = v;
-    if (k === "fader")
-      nrpn(isMaster ? P.masterFader : P.fader(i), encodeFader(v));
-    if (k === "mute") nrpn(isMaster ? P.masterMute : P.mute(i), v ? 1 : 0);
-    if (k === "pan" && !isMaster) nrpn(P.pan(i), encodePan(v));
-  }
-}
-function mixSnapshot() {
-  const mix = {};
-  mixer.channels.forEach(({ name, ...settings }, i) => (mix[i] = settings));
-  mix.master = { ...mixer.master };
-  return mix;
 }
 
 // The "state of the lights", per output: output n's address a is slot (n - 1) * 512 + a, 0 = off, 255 = full.
@@ -845,7 +639,7 @@ function fullLook(index) {
   });
   return levels;
 }
-// The light cue whose look is on stage (sound and mix cues don't change the lights)
+// The light cue whose look is on stage (sound cues don't change the lights)
 function lightOnStage() {
   let i = currentCue;
   while (i >= 0 && !isLight(show.cues[i])) i--;
@@ -1047,11 +841,6 @@ function runCue(cue, index) {
     });
   if (cue.type === "midi" && midiOut.isPortOpen())
     midiOut.sendMessage(cue.bytes);
-  if (cue.type === "mix") {
-    for (const [ch, v] of Object.entries(cue.mix || {})) setMix(ch, v);
-    if (cue.scene) recallScene(cue.scene); // a scene saved on the desk itself
-    io.emit("mixer", mixer);
-  }
 }
 
 // Fire one cue by position. If it has auto-follow on, the next cue fires by itself after "wait" seconds.
@@ -1206,15 +995,13 @@ function state() {
     protocols: show.protocols,
     live: show.live,
     outputs: {
-      ifaces: ifaces.map((i) => i.address),
+      ifaces: SANDBOX ? [] : ifaces.map((i) => i.address), // the demo site keeps its network addresses to itself
       dmxPort: dmxPort && dmxPort.isOpen ? dmxPortPath : "",
       serial: !!SerialPort,
     },
     groups: show.groups || {}, // "1": { label, channels: [fixture numbers] }
     palettes: show.palettes || {}, // colour palettes, "1": { label, colors: { fixtureNumber: {r,g,b} } }
     faders: show.faders || [], // [{ name, levels: { dmxChannel: level } }]; positions come in the "faders" event
-    mixer,
-    desk,
     master,
     audioFiles: audioFiles(),
   };
@@ -1723,10 +1510,6 @@ io.on("connection", (socket) => {
     if (index >= 0 && index < show.cues.length) fire(index);
   });
 
-  socket.on("midi", (bytes) => {
-    if (midiOut.isPortOpen()) midiOut.sendMessage(bytes);
-  });
-
   socket.on("stop", stopAll);
   socket.on("stopSound", () => io.emit("stopSound")); // sound page: fade all audio, leave lights alone
 
@@ -1776,75 +1559,6 @@ io.on("connection", (socket) => {
     manual.clear();
     recheckStage(stageBefore);
     emitMarks();
-    saveShow();
-    broadcastState();
-  });
-
-  // Sound page mixer: something moved. ch is a channel index or "master"; the rest are settings.
-  socket.on("mixer", ({ ch, ...changes }) => {
-    setMix(ch, changes);
-    io.emit("mixer", mixer);
-  });
-  socket.on("renameMixChannel", ({ ch, name }) => {
-    const c = mixer.channels[ch];
-    if (!c) return;
-    c.name = name;
-    saveMixerConfig();
-    io.emit("mixer", mixer);
-  });
-  // Sound page "Choose desk": sweep the network and report desks as they turn up
-  socket.on("scanDesks", async () => {
-    if (scanning) return;
-    if (SANDBOX)
-      return io.emit("desks", {
-        scanning: false,
-        found: [],
-        scanned: 0,
-        skipped: 0,
-      }); // the demo site never sweeps a network
-    scanning = true;
-    const found = [];
-    io.emit("desks", { scanning: true, found });
-    const result = await discoverDesks((desk) => {
-      found.push(desk);
-      io.emit("desks", { scanning: true, found });
-    });
-    scanning = false;
-    io.emit("desks", {
-      scanning: false,
-      found,
-      scanned: result.scanned,
-      skipped: result.skipped,
-    });
-  });
-  // The desk's IP address was typed on the sound page: save it and (re)connect
-  socket.on("setSqHost", (host) => {
-    desk.host = String(host || "").trim();
-    saveMixerConfig();
-    if (sqSocket)
-      sqSocket.destroy(); // its close handler reconnects with the new address
-    else connectSq();
-    io.emit("desk", desk);
-  });
-  // Save the current faders and mutes into a cue (a "mix" cue), like recording a light look
-  socket.on("recordMix", ({ number, label } = {}) => {
-    remember("record mix");
-    const cue =
-      number !== undefined
-        ? show.cues.find(
-            (c) => c.type === "mix" && sameNumber(c.number, number),
-          )
-        : null;
-    if (cue)
-      cue.mix = mixSnapshot(); // only ever overwrites a mix cue
-    else if (number === undefined)
-      show.cues.push({
-        number: nextCueNumber(),
-        label: label || "Mix scene",
-        type: "mix",
-        mix: mixSnapshot(),
-      });
-    else return;
     saveShow();
     broadcastState();
   });

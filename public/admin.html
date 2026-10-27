@@ -1,0 +1,92 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Admin sign in</title>
+    <link rel="stylesheet" href="/style.css" />
+    <style>
+      main {
+        display: block;
+        max-width: 380px;
+        margin: 100px auto 0;
+        padding: 24px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+        border-radius: 10px;
+      }
+      h1 {
+        font-size: 20px;
+        margin: 0 0 4px;
+      }
+      p {
+        color: var(--dim);
+        margin: 0 0 18px;
+      }
+      input {
+        display: block;
+        width: 100%;
+        box-sizing: border-box;
+        font-size: 16px;
+        padding: 10px 12px;
+        margin-bottom: 10px;
+        background: var(--bg);
+        color: var(--text);
+        border: 1px solid var(--line);
+        border-radius: 6px;
+      }
+      input:focus {
+        outline: none;
+        border-color: #3fdc5a;
+      }
+      .err {
+        color: #e07070;
+        min-height: 1.4em;
+        margin: 0 0 8px;
+      }
+      button {
+        width: 100%;
+        padding: 10px;
+        font-size: 15px;
+      }
+      .back {
+        margin: 24px 0 0;
+        text-align: center;
+        font-size: 13px;
+      }
+      .back a {
+        color: var(--dim);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Show Control</h1>
+      <p>Admin sign in. The username and password come from the .env file on the show computer.</p>
+      <input id="user" placeholder="Username" autocomplete="username" autofocus />
+      <input id="password" type="password" placeholder="Password" autocomplete="current-password" />
+      <p class="err" id="err"></p>
+      <button id="go">Sign in</button>
+      <p class="back"><a href="/login.html">Sign in with a key instead</a></p>
+    </main>
+    <script>
+      async function enter() {
+        const r = await fetch("/auth/admin", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user: document.getElementById("user").value.trim(),
+            password: document.getElementById("password").value,
+          }),
+        });
+        if (r.ok) location.href = "/";
+        else
+          document.getElementById("err").textContent = (await r.json()).error;
+      }
+      document.getElementById("go").onclick = enter;
+      for (const id of ["user", "password"])
+        document.getElementById(id).onkeydown = (e) => {
+          if (e.key === "Enter") enter();
+        };
+    </script>
+  </body>
+</html>

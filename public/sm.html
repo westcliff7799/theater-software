@@ -32,7 +32,6 @@
       .badge.light { background: #3a2d0c; color: #f2b84c; }
       .badge.sound { background: #0f2a44; color: #6cb5ff; }
       .badge.midi  { background: #2a1a44; color: #c08cff; }
-      .badge.mix   { background: #0f3a2a; color: #5fe0a0; }
       td.notes { color: var(--dim); font-size: 13px; }
       td.follow { color: var(--dim); font-size: 12px; white-space: nowrap; }
 
@@ -126,7 +125,7 @@
           <label>Number <input id="f-number" /></label>
           <label>Label <input id="f-label" /></label>
           <label>Type
-            <select id="f-type"><option>light</option><option>sound</option><option>midi</option><option>mix</option></select>
+            <select id="f-type"><option>light</option><option>sound</option><option>midi</option></select>
           </label>
 
           <div data-for="light">
@@ -142,10 +141,6 @@
           </div>
           <div data-for="midi">
             <label>MIDI bytes <input id="f-bytes" placeholder="192, 4" /></label>
-          </div>
-          <div data-for="mix">
-            <p class="none">Mixer faders and mutes, recorded from the Sound page's Mixer tab.</p>
-            <label>Also recall a scene saved on the SQ (1 to 300, optional) <input id="f-scene" type="number" min="1" max="300" /></label>
           </div>
 
           <label class="check"><input type="checkbox" id="f-follow" /> Auto-follow: fire the next cue by itself</label>
@@ -205,7 +200,6 @@
       function describe(cue) {
         if (cue.type === "sound") return (cue.file || "") + (cue.volume != null && cue.volume !== 1 ? ` @ ${Math.round(cue.volume * 100)}%` : "") + (cue.loop ? " ↻" : "");
         if (cue.type === "midi") return (cue.bytes || []).join(", ");
-        if (cue.type === "mix") { const n = Object.keys(cue.mix || {}).length; return n ? n + " faders" : "nothing recorded yet"; }
         const n = Object.keys(cue.levels || {}).length;
         return n ? `${n} channel${n > 1 ? "s" : ""}` : "";
       }
@@ -272,7 +266,6 @@
         $("f-follow").checked = !!cue.autoFollow;
         $("f-wait").value = cue.wait ?? 0;
         $("f-notes").value = cue.notes || "";
-        $("f-scene").value = cue.scene || "";
         showFields(cue.type);
       }
 
@@ -292,7 +285,6 @@
         "f-follow": (c, el) => (c.autoFollow = el.checked),
         "f-wait": (c, el) => (c.wait = Number(el.value) || 0),
         "f-notes": (c, el) => (c.notes = el.value),
-        "f-scene": (c, el) => (c.scene = Number(el.value) || 0),
       };
       function changeField(el) {
         if (selected < 0) return;
@@ -327,10 +319,6 @@
           cue.loop = $("f-loop").checked;
         }
         if (cue.type === "midi") cue.bytes = $("f-bytes").value.split(",").map((s) => Number(s.trim())).filter((n) => !Number.isNaN(n));
-        if (cue.type === "mix") {
-          cue.mix = cues[selected].mix || {}; // keeps what the Mixer tab recorded
-          cue.scene = Number($("f-scene").value) || 0;
-        }
         cues[selected] = cue;
         showFields(cue.type);
         socket.emit("saveCues", cues);
