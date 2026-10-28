@@ -483,6 +483,23 @@ function emitOut(levels) { // the real output, for the views to show: changes on
 }
 setInterval(() => {
   const levels = output();
+  // Constant fixtures (relays that power other lights) are always out at full: cues, faders, light check and
+  // the master are all ignored. The views see them at full too.
+  const constants = new Set(); // level-table slots held at full
+  for (const f of show.patch || []) {
+    if (!f || !f.constant) continue;
+    for (const c of cellsOf(f)) {
+      const out = Math.max(1, Number(c.universe || f.universe) || 1);
+      if (out > OUTPUTS) continue;
+      for (let i = 0; i < channelsOf(c); i++) {
+        const a = c.address - 1 + i;
+        if (a >= 512) break;
+        const slot = (out - 1) * 512 + a;
+        levels[slot] = 255;
+        constants.add(slot);
+      }
+    }
+  }
   emitOut(levels);
   if (SANDBOX) return; // nothing goes out of the demo site
   const buckets = new Map(); // "sacn:1" -> everything going out on that protocol and universe
@@ -507,7 +524,8 @@ setInterval(() => {
       if (a >= 512) break;
       const slot = (out - 1) * 512 + a; // where the level table keeps it
       b.levels[a] = levels[slot];
-      if (set && set[i] !== undefined && levels[slot] === 0) b.fixed[a] = set[i];
+      if (constants.has(slot)) b.fixed[a] = 255; // a constant: full, whatever the master says
+      else if (set && set[i] !== undefined && levels[slot] === 0) b.fixed[a] = set[i];
       routed.add(slot);
     }
   };

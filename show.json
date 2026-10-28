@@ -9028,7 +9028,7 @@
       "artnet": false,
       "universe": 1,
       "x": 16,
-      "y": 60
+      "y": 45
     },
     null,
     null,
@@ -9172,8 +9172,8 @@
       "dmx": false,
       "artnet": false,
       "universe": 1,
-      "x": 29,
-      "y": 60
+      "x": 40,
+      "y": 51
     },
     null,
     {
@@ -9208,8 +9208,8 @@
       "dmx": false,
       "artnet": false,
       "universe": 1,
-      "x": 15,
-      "y": 60
+      "x": 31,
+      "y": 46
     },
     {
       "name": "Fixture 96",
@@ -9219,8 +9219,8 @@
       "dmx": false,
       "artnet": false,
       "universe": 1,
-      "x": 26,
-      "y": 60
+      "x": 27,
+      "y": 44
     },
     null,
     null,
@@ -9451,8 +9451,8 @@
       "dmx": false,
       "artnet": false,
       "universe": 1,
-      "x": 20,
-      "y": 60,
+      "x": 19,
+      "y": 52,
       "addrFixed": true,
       "profile": {
         "make": "Philips Selecon",
@@ -9612,8 +9612,8 @@
       "dmx": false,
       "artnet": true,
       "universe": 2,
-      "x": 17,
-      "y": 60,
+      "x": 36,
+      "y": 44,
       "profile": {
         "make": "Philips Selecon",
         "model": "PLFRESNEL1",
@@ -9706,8 +9706,8 @@
       "dmx": false,
       "artnet": false,
       "universe": 1,
-      "x": 14,
-      "y": 60,
+      "x": 19,
+      "y": 41,
       "addrFixed": true,
       "profile": {
         "make": "Showline",
@@ -9857,7 +9857,37 @@
           "0": 12
         }
       },
-      "addrFixed": true
+      "addrFixed": true,
+      "aim": {
+        "x": 7.083333333333333,
+        "y": 23.37646484375
+      },
+      "spots": [
+        {
+          "x": 3.1,
+          "y": 57.6,
+          "pan": 59,
+          "tilt": 173
+        },
+        {
+          "x": 92.2,
+          "y": 64.9,
+          "pan": 123,
+          "tilt": 200
+        },
+        {
+          "x": 90.9,
+          "y": 21.6,
+          "pan": 104,
+          "tilt": 206
+        },
+        {
+          "x": 2.6,
+          "y": 19.2,
+          "pan": 78,
+          "tilt": 200
+        }
+      ]
     },
     {
       "name": "DSL Moving",
@@ -9974,8 +10004,8 @@
       "dmx": false,
       "artnet": true,
       "universe": 2,
-      "x": 21,
-      "y": 60,
+      "x": 22,
+      "y": 52,
       "profile": {
         "make": "Chauvet DJ",
         "model": "Geyser P6",
@@ -10010,7 +10040,8 @@
         "b": 3,
         "w": 4
       },
-      "addrFixed": true
+      "addrFixed": true,
+      "height": 0
     },
     {
       "name": "Fixture 164",
@@ -10112,8 +10143,8 @@
       "dmx": false,
       "artnet": false,
       "universe": 1,
-      "x": 18,
-      "y": 60,
+      "x": 27,
+      "y": 32,
       "addrFixed": true,
       "profile": {
         "make": "Philips Selecon",
@@ -10765,7 +10796,8 @@
           }
         }
       ],
-      "addrFixed": true
+      "addrFixed": true,
+      "constant": true
     }
   ],
   "faders": [],

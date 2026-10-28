@@ -71,6 +71,14 @@
     /* where a mover's beam lands: a dot in that mover's own colour, numbered like the fixture */
     .beam { position: absolute; width: 20px; height: 20px; margin: -10px 0 0 -10px; border-radius: 50%; border: 2px solid; background: #000; color: #fff; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: crosshair; touch-action: none; user-select: none; z-index: 2; }
     .beam.sel { box-shadow: 0 0 0 2px var(--accent); }
+    .spot { position: absolute; width: 11px; height: 11px; margin: -6px 0 0 -6px; border: 2px solid; transform: rotate(45deg); background: #000; opacity: .8; z-index: 1; pointer-events: none; } /* a taught spot: where a mover was pointed by hand */
+    .map.teaching { cursor: cell; box-shadow: inset 0 0 0 2px #ffb300; }
+    .map.teaching .spot { pointer-events: auto; cursor: pointer; }
+    .map.teaching .beam { pointer-events: none; }
+    .ml .teach { display: flex; flex-wrap: wrap; gap: 6px 10px; align-items: center; margin-bottom: 10px; font-size: 12px; color: var(--dim); }
+    .ml .teach b { color: var(--text); }
+    .ml .teach button.on { background: #ffb300; color: #000; }
+    .ml .teach span { flex-basis: 100%; color: #ffb300; }
     /* a conventional's arrow tip: drag it round the light to set which way the unit faces */
     .turn { position: absolute; width: 14px; height: 14px; margin: -7px 0 0 -7px; border-radius: 50%; border: 2px solid #bbb; background: #000; cursor: grab; touch-action: none; z-index: 2; }
 
@@ -212,6 +220,8 @@
     .patch td:last-child { border-right: none; }
     .patch td.ro { padding-left: 18px; color: #eee; font-size: 15px; }
     .patch td.flag { text-align: center; color: #ddd; font-size: 16px; width: 44px; user-select: none; }
+    .patch td.flag.const { cursor: pointer; color: #ffb300; }
+    .patch td.flag.const:hover { background: #1a2230; }
     .patch td.out { text-align: center; color: var(--gold); font-family: Menlo, monospace; font-size: 15px; }
     .patch td:first-child input { font-size: 16px; font-weight: bold; padding: 6px 10px; }
     .patch td:last-child button { padding: 2px 8px; }
@@ -434,7 +444,7 @@
           <table>
             <colgroup><col class="cAddr"><col class="cChan"><col class="cType"><col><col class="cPri"><col class="cIf"><col class="cIf"><col class="cIf"><col class="cOut"><col class="cUses"><col class="cRm"></colgroup>
             <thead>
-              <tr><th>Chan</th><th>Address</th><th>Type</th><th>Label</th><th>sACN Priority</th><th class="interface">sACN</th><th class="interface">DMX</th><th class="interface">ArtNet</th><th>Output</th><th>Uses</th><th></th></tr>
+              <tr><th>Chan</th><th>Address</th><th>Type</th><th>Label</th><th>sACN Priority</th><th class="interface">sACN</th><th class="interface">DMX</th><th class="interface">ArtNet</th><th class="interface" title="Always out at full, ignoring cues, faders, master and blackout">Const</th><th>Output</th><th>Uses</th><th></th></tr>
             </thead>
             <tbody id="patchRows"></tbody>
           </table>
@@ -575,7 +585,13 @@
         <h4>FOCUS <small>drag a dot to aim that mover, drag the floor to aim them all</small></h4>
         <div class="pad map" id="mlPad"><svg></svg><span class="lbl edge">AUDIENCE</span></div>
         <div class="legend" id="mlLegend"></div>
-        <div class="geo" id="moverGeo" title="Where the first selected mover hangs, so the map can aim it">
+        <div class="teach" id="teach" hidden>
+          <b id="teachInfo"></b>
+          <button id="teachBtn" title="Teach the map where this mover really points: aim it by hand with the Pan and Tilt sliders, then click the map where the beam lands. Four spots near the corners of the stage is plenty.">Teach spots</button>
+          <button id="teachClear" title="Forget every taught spot of this mover; the map goes back to guessing">Forget spots</button>
+          <span id="teachHint"></span>
+        </div>
+        <div class="geo" id="moverGeo" title="Until a mover is taught, the map guesses from where it hangs and how far it turns">
           <label><input data-m="height" type="number" min="0.5" max="30" step="0.1"> m high</label>
           <label>facing <input data-m="face" type="number" min="-180" max="180" step="5">°</label>
           <label>pan <input data-m="panRange" type="number" min="-720" max="720" step="10">°</label>
@@ -757,7 +773,76 @@
     // The plan: the whole room in metres, with named areas drawn on it (stage, house, wings, walls, curtains). Set on the Stage tab.
     const mapSize = () => { if (!live.map) live.map = { w: 12, d: 8, areas: [] }; live.map.areas ||= []; return live.map; };
     const MOVER = { height: 6, face: 0, panRange: 540, tiltRange: 270 }; // defaults; a fixture can override with its own f.height, f.face…
+    // Taught spots: a mover can carry f.spots = [{ x, y, pan, tilt }], each a place on the plan it was pointed at by hand.
+    // With 4 or more, pan and tilt are fitted to the plan position (least squares) and the map aims from that, so
+    // which way the unit hangs, how high it is, and which way its pan and tilt run no longer have to be known.
+    function solve(A, b) { // least squares A x ~ b by the normal equations; null if the points do not pin it down
+      const n = A[0].length, M = Array.from({ length: n }, () => new Array(n + 1).fill(0));
+      for (let r = 0; r < A.length; r++) for (let i = 0; i < n; i++) { for (let j = 0; j < n; j++) M[i][j] += A[r][i] * A[r][j]; M[i][n] += A[r][i] * b[r]; }
+      for (let c = 0; c < n; c++) {
+        let p = c; for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[p][c])) p = r;
+        if (Math.abs(M[p][c]) < 1e-9) return null;
+        [M[c], M[p]] = [M[p], M[c]];
+        for (let r = 0; r < n; r++) if (r !== c) { const k = M[r][c] / M[c][c]; for (let j = c; j <= n; j++) M[r][j] -= k * M[c][j]; }
+      }
+      return M.map((row, i) => row[n] / row[i]);
+    }
+    const spotCache = new WeakMap(); // fitted model per fixture object; the patch is replaced on every state update anyway
+    function spotModel(f) { // (x, y) -> { pan, tilt } from the taught spots, or null when there are fewer than 4
+      const sp = f.spots || [];
+      if (sp.length < 4) return null; // three can be explained more than one way; four pin it down
+      const S = mapSize(), key = JSON.stringify([sp, f.x, f.y, S.w, S.d]);
+      const c = spotCache.get(f);
+      if (c && c.key === key) return c.fn;
+      // 1. A physical fit: the unit hangs somewhere near its dot on the plan, pointing down. Pan is a straight line in
+      // the compass bearing to the spot (direction and zero unknown), tilt a straight line in the angle out from
+      // vertical (height unknown). Try hang positions, heights and bearing zeros; keep what explains the spots best.
+      const deg = 180 / Math.PI, wrap = (d) => ((d + 540) % 360) - 180;
+      const line = (xs, ys) => solve(xs.map((x) => [1, x]), ys); // ys ~ a + b*x
+      const sse = (xs, ys, ab) => xs.reduce((e, x, k) => e + (ab[0] + ab[1] * x - ys[k]) ** 2, 0);
+      let best = null;
+      const fx = f.x ?? 50, fy = f.y ?? 50;
+      for (const ox of [-25, -15, -8, -4, 0, 4, 8, 15, 25]) for (const oy of [-25, -15, -8, -4, 0, 4, 8, 15, 25]) {
+        const hx = fx + ox, hy = fy + oy;
+        const dist = sp.map((s) => Math.hypot((s.x - hx) / 100 * S.w, (s.y - hy) / 100 * S.d));
+        const bear = sp.map((s) => Math.atan2((s.x - hx) / 100 * S.w, (s.y - hy) / 100 * S.d) * deg);
+        for (let cut = 0; cut < 360; cut += 30) { // where the bearing wraps round: it must not fall among the spots
+          const bs = bear.map((v) => wrap(v + cut)), pan = line(bs, sp.map((s) => s.pan));
+          if (!pan) continue;
+          const ep = sse(bs, sp.map((s) => s.pan), pan);
+          const gap = Math.min(...bs.map((v) => 180 - Math.abs(v))); // how far the seam is from the nearest spot: equal fits prefer it far away
+          for (const hgt of [0.7, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 7, 8, 10, 12, 15, 20]) {
+            const ts = dist.map((d) => Math.atan2(d, hgt) * deg), tilt = line(ts, sp.map((s) => s.tilt));
+            if (!tilt) continue;
+            const e = ep + sse(ts, sp.map((s) => s.tilt), tilt);
+            if (!best || e < best.e - 1e-6 || (Math.abs(e - best.e) <= 1e-6 && gap > best.gap)) best = { e, gap, hx, hy, cut, hgt, pan, tilt };
+          }
+        }
+      }
+      if (!best) return null;
+      const phys = (x, y) => {
+        const dx = (x - best.hx) / 100 * S.w, dy = (y - best.hy) / 100 * S.d;
+        return { pan: best.pan[0] + best.pan[1] * wrap(Math.atan2(dx, dy) * deg + best.cut), tilt: best.tilt[0] + best.tilt[1] * Math.atan2(Math.hypot(dx, dy), best.hgt) * deg };
+      };
+      // 2. Whatever the physical fit still gets wrong at each taught spot (a unit hung at an angle, a dot a little off)
+      // is spread over the plan by distance, so every taught spot is hit exactly and its neighbours nearly so.
+      const res = sp.map((s) => { const p = phys(s.x, s.y); return { x: s.x, y: s.y, pan: s.pan - p.pan, tilt: s.tilt - p.tilt }; });
+      const fn = (x, y) => {
+        const p = phys(x, y);
+        let w = 0, dp = 0, dt = 0;
+        for (const r of res) {
+          const d2 = (x - r.x) ** 2 + (y - r.y) ** 2;
+          if (d2 < 0.01) return { pan: p.pan + r.pan, tilt: p.tilt + r.tilt };
+          const k = 1 / d2; w += k; dp += k * r.pan; dt += k * r.tilt;
+        }
+        return { pan: p.pan + dp / w, tilt: p.tilt + dt / w };
+      };
+      spotCache.set(f, { key, fn });
+      return fn;
+    }
     function aimAt(f, tx, ty) { // pan/tilt DMX to light spot tx,ty on the plot (percentages, like f.x / f.y)
+      const taught = spotModel(f);
+      if (taught) return taught(tx, ty);
       const m = { ...MOVER, ...f };
       const S = mapSize(), dx = (tx - (f.x ?? 50)) / 100 * S.w, dy = (ty - (f.y ?? 50)) / 100 * S.d;
       let pan = Math.atan2(dx, dy) * 180 / Math.PI - m.face;           // direction to the spot; 0° = facing the audience
@@ -830,7 +915,7 @@
     }
     function buildMap(box, which) { // which: the fixture indexes to draw. The plan draws every light, the ML pad just the movers
       const plan = box.id === "stage";
-      box.querySelectorAll(".fx, .beam").forEach((e) => e.remove());
+      box.querySelectorAll(".fx, .beam, .spot").forEach((e) => e.remove());
       paintAreas(box);
       for (const i of which) {
         const f = patch[i];
@@ -847,6 +932,12 @@
           b.title = `${f.name}: drag to aim it`;
           // dragging one selected mover's dot moves every selected mover to the same spot; outside Edit map it selects the mover
           b.onpointerdown = (e) => (canEdit(box) ? startAim(e, selected.has(i) ? selectedMovers() : [i], box) : (e.stopPropagation(), clickSelect(e, i)));
+          (f.spots || []).forEach((s, k) => { // where it was pointed by hand while teaching
+            const d = document.createElement("div");
+            d.className = "spot"; d.dataset.spot = i; d.dataset.k = k; d.style.borderColor = beamColour(i);
+            d.title = `${f.name}: taught spot ${k + 1} (pan ${s.pan}, tilt ${s.tilt}). While teaching, click it to forget it.`;
+            box.appendChild(d);
+          });
         } else {
           if (!plan) continue; // the ML pad only shows movers
           b.className = "turn";
@@ -869,6 +960,11 @@
         el.style.background = `rgb(${c.r * lv / 255 | 0}, ${c.g * lv / 255 | 0}, ${c.b * lv / 255 | 0})`;
         el.classList.toggle("sel", selected.has(i));
         el.querySelector("small").textContent = `${f.name} ${Math.round(lv / 255 * 100)}%`;
+      }
+      for (const d of box.querySelectorAll(".spot")) {
+        const s = (patch[Number(d.dataset.spot)] || {}).spots?.[Number(d.dataset.k)];
+        if (!s) { d.remove(); continue; }
+        d.style.left = s.x + "%"; d.style.top = s.y + "%";
       }
       const W = box.clientWidth, H = box.clientHeight; // arrows are drawn in px so the heads keep their shape
       for (const b of box.querySelectorAll(".beam, .turn")) {
@@ -960,7 +1056,57 @@
       selected.clear(); // clicked empty floor
       paintAll();
     };
-    $("mlPad").onpointerdown = (e) => { if (!e.target.closest(".fx, .beam")) startAim(e, selectedMovers(), $("mlPad")); };
+    $("mlPad").onpointerdown = (e) => {
+      if (teaching) {
+        e.preventDefault(); e.stopPropagation();
+        const sp = e.target.closest(".spot");
+        return sp ? forgetSpot(Number(sp.dataset.spot), Number(sp.dataset.k)) : teachSpot(pctIn($("mlPad").getBoundingClientRect(), e));
+      }
+      if (!e.target.closest(".fx, .beam")) startAim(e, selectedMovers(), $("mlPad"));
+    };
+    // ---- teaching a mover: point it by hand, click where the beam lands; the map aims from those spots from then on
+    let teaching = false;
+    function rebuildPad() { const movers = selectedMovers(); buildMap($("mlPad"), movers); fitMap($("mlPad"), 360, 270); paintMap($("mlPad")); }
+    function paintTeach() {
+      const i = first(), f = patch[i], on = !!(f && hasMove(f));
+      $("teach").hidden = !on;
+      if (!on) { teaching = false; $("mlPad").classList.remove("teaching"); return; }
+      const n = (f.spots || []).length;
+      $("teachInfo").textContent = `${i + 1} ${f.name}: ` + (n >= 4 ? `aims from ${n} taught spots` : n ? `${n} of 4 spots taught, the map still guesses` : "not taught, the map guesses from where it hangs");
+      $("teachBtn").textContent = teaching ? "Done teaching" : "Teach spots";
+      $("teachBtn").classList.toggle("on", teaching);
+      $("teachClear").hidden = !n;
+      $("teachHint").textContent = teaching ? "Point the light with the Pan and Tilt sliders, then click the map where the beam lands. Four spots near the corners of the stage is plenty; click a spot to forget it." : "";
+      $("moverGeo").hidden = n >= 4; // the guess settings only matter until it is taught
+      $("mlPad").classList.toggle("teaching", teaching);
+    }
+    function teachSpot(p) {
+      const i = first(), f = patch[i];
+      if (!f || !hasMove(f)) return;
+      const spot = { x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10, pan: chan(f, "pan"), tilt: chan(f, "tilt") };
+      (f.spots ||= []).push(spot);
+      f.aim = { x: spot.x, y: spot.y }; // the beam dot moves to where the light really is
+      socket.emit("savePatch", patch);
+      rebuildPad(); paintTeach();
+      notice(`${i + 1} ${f.name}: spot ${f.spots.length} taught (pan ${spot.pan}, tilt ${spot.tilt})`);
+    }
+    function forgetSpot(i, k) {
+      const f = patch[i];
+      if (!f || !f.spots) return;
+      f.spots.splice(k, 1);
+      if (!f.spots.length) delete f.spots;
+      socket.emit("savePatch", patch);
+      rebuildPad(); paintTeach();
+    }
+    $("teachBtn").onclick = () => { teaching = !teaching; paintTeach(); };
+    $("teachClear").onclick = () => {
+      const i = first(), f = patch[i];
+      if (!f || !f.spots) return;
+      delete f.spots;
+      socket.emit("savePatch", patch);
+      rebuildPad(); paintTeach();
+      notice(`${i + 1} ${f.name}: spots forgotten, the map guesses again`);
+    };
 
     // ---- the plan's areas: rectangles in metres from the top-left corner (upstage, stage right)
     const KINDS = { stage: "Stage", area: "Area", wall: "Wall", curtain: "Curtain" };
@@ -1075,6 +1221,7 @@
       const box = $("grid");
       box.innerHTML = "";
       box.style.setProperty("--tile", (live.tile || 72) + "px");
+      box.dataset.cols = stripColumns(); // what the strips were built for, so a tab switch can tell when it is stale
       const runs = []; // [{ kind, items: [channel index] }]
       for (let i = 0; i < patch.length; i++) {
         const f = patch[i];
@@ -1208,6 +1355,7 @@
           <td><input data-k="name"></td>
           <td><input data-k="priority" type="number" min="1" max="200" placeholder="${protocols.sacn.priority}"></td>
           ${flagCell("sacn", protocols.sacn.enabled)}${flagCell("dmx", protocols.dmx.enabled)}${flagCell("artnet", protocols.artnet.enabled)}
+          <td class="flag const" data-const title="Constant: always out at full, ignoring cues, faders, master and blackout. For relays that power other lights. Click to toggle.">${f.constant ? "●" : ""}</td>
           <td class="out" data-out="${i}" title="What this light is putting out right now, 0-255"></td>
           <td>${uses}</td>
           <td><button title="Remove">✕</button></td>`;
@@ -1221,6 +1369,14 @@
           socket.emit("savePatch", patch);
         };
       }
+      const constTd = tr.querySelector("[data-const]");
+      constTd.onclick = (e) => { // a constant is held at full by the server from launch until quit
+        e.stopPropagation();
+        if (f.constant) delete f.constant; else f.constant = true;
+        constTd.textContent = f.constant ? "●" : "";
+        socket.emit("savePatch", patch);
+        notice(`Channel ${i + 1} ${f.constant ? "is now constant: always out at full" : "is no longer constant"}`);
+      };
       tr.classList.toggle("sel", i === patchSel && partSel < 0);
       tr.onclick = (e) => { if (!e.target.closest("button")) selectRow(i); };
       tr.querySelector("button").onclick = () => {
@@ -1320,7 +1476,7 @@
         const f = patch[ch - 1], tr = document.createElement("tr");
         tr.dataset.ch = ch;
         if (!f) {
-          tr.innerHTML = `<td class="ro addr">${ch}</td>` + "<td></td>".repeat(10);
+          tr.innerHTML = `<td class="ro addr">${ch}</td>` + "<td></td>".repeat(11);
           tr.classList.add("free");
           tr.classList.toggle("sel", patchSel === ch - 1);
           tr.onclick = () => selectRow(ch - 1);
@@ -1339,7 +1495,7 @@
             <td class="ro">${cellUni(f, c)}/${span(c)}</td>
             <td class="ro" title="${typeName(c)}">${typeName(c)}</td>
             <td><input data-k="name"></td>
-            <td></td><td></td><td></td><td></td><td></td>
+            <td></td><td></td><td></td><td></td><td></td><td></td>
             <td>${span(c)}</td>
             <td><button title="Remove this part">✕</button></td>`;
           const inp = pr.querySelector("[data-k]");
@@ -1726,7 +1882,7 @@
       if (document.activeElement !== $("mapW")) $("mapW").value = M.w;
       if (document.activeElement !== $("mapD")) $("mapD").value = M.d;
       fitStage(); paintAreas($("stage")); paintAreaList();
-      if ($("mlPanel").classList.contains("on")) { fitMap($("mlPad"), 260, 200); paintAreas($("mlPad")); paintMap($("mlPad")); }
+      if ($("mlPanel").classList.contains("on")) { fitMap($("mlPad"), 360, 270); paintAreas($("mlPad")); paintMap($("mlPad")); }
     }
     for (const el of document.querySelectorAll("[data-l]")) el.onchange = () => {
       const k = el.dataset.l;
@@ -2420,6 +2576,9 @@
       onPatch = b.dataset.tab === "patchTab";
       if (!onPatch) stopFlash(); // leaving Patch ends the flash
       refreshBlind();
+      // The Live grid sizes its columns from its own width. Built while another tab hid it (a patch save does that),
+      // it has the wrong count and the tiles come out huge, so it is rebuilt on the way back.
+      if (b.dataset.tab === "gridTab" && $("grid").dataset.cols !== String(stripColumns())) { buildGrid(); paintGrid(); }
       b.blur();
     };
 
@@ -2488,7 +2647,7 @@
       const movers = who.filter((i) => hasMove(patch[i]));
       $("mlPad").style.display = $("mlHome").style.display = movers.length ? "" : "none";
       buildMap($("mlPad"), movers);
-      fitMap($("mlPad"), 260, 200);
+      fitMap($("mlPad"), 360, 270);
       $("mlLegend").innerHTML = movers.map((i) => `<span><i style="background:${beamColour(i)}"></i>${i + 1} ${patch[i].name}</span>`).join("");
       $("mlPick").hidden = !who.some((i) => hasColor(patch[i]));
     }
@@ -2503,6 +2662,7 @@
       }
       paintMap($("mlPad"));
       paintMoverGeo();
+      paintTeach();
       const ci = [...selected].find((i) => patch[i] && hasColor(patch[i]));
       if (ci !== undefined && document.activeElement !== $("mlPick")) $("mlPick").value = hex(color(ci));
     }
@@ -2510,7 +2670,7 @@
       if (!patch[first()]) return hint("Select a channel first", true);
       buildFull(); $("mlPanel").classList.add("on"); $("mlShade").classList.add("on"); paintFull();
     }
-    function closeFull() { $("mlPanel").classList.remove("on"); $("mlShade").classList.remove("on"); }
+    function closeFull() { teaching = false; $("mlPanel").classList.remove("on"); $("mlShade").classList.remove("on"); $("mlPad").classList.remove("teaching"); }
     $("mlShade").onclick = closeFull; // clicking outside the panel closes it
     $("fullBtn").onclick = openFull;
     $("mlClose").onclick = closeFull;
